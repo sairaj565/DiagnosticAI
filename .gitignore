@@ -30,3 +30,6 @@ static/uploads/*
 *.swp
 
 dataset/
+
+# System Files
+desktop.ini
