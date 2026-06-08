@@ -109,3 +109,23 @@ The diagnostic predictions are generated live by the TensorFlow model through th
 > [!WARNING]
 > **DiagnosticAI is designed to act as an assistant tool for radiologists and clinical researchers.** 
 > While the MobileNetV2 deep learning model runs live math-based predictions, these results are intended for auxiliary diagnostic support, educational reference, and workflow triaging. They do not constitute final medical diagnoses. All clinical decisions and follow-up protocols must be verified by a certified healthcare professional.
+
+## Screenshots
+
+### Dashboard
+![Dashboard](screenshots/dashboard.png)
+
+### Upload Scan
+![Upload Scan](screenshots/upload.png)
+
+### Patient Records
+![Patient Records](screenshots/records.png)
+
+### Reports
+![Reports](screenshots/reports.png)
+
+### Model Evaluation
+![Model Evaluation](screenshots/evaluation.png)
+
+### Analytics
+![Analytics](screenshots/analytics.png)
