@@ -4,6 +4,13 @@ DiagnosticAI is a premium, fully-responsive clinical assistant web application d
 
 Utilizing a deep learning MobileNetV2 model, the platform delivers instantaneous nodule analysis (<3 seconds) alongside automated **Lung-RADS clinical categorization**, risk assessment scoring, longitudinal patient record tracking, and print-ready report generation.
 
+## ⚡ Quick Start
+
+```bash
+pip install -r requirements.txt
+python app.py
+```
+
 ---
 
 ## ✨ Features
