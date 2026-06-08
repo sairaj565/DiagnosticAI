@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DiagnosticAI — Verify Identity</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🫁</text></svg>">
+    <style>
+        :root {
+            --navy: #0a0f1e;
+            --navy-mid: #111827;
+            --blue: #2563eb;
+            --blue-bright: #3b82f6;
+            --blue-glow: #60a5fa;
+            --text-primary: #f0f4ff;
+            --text-secondary: #94a3b8;
+            --text-muted: #475569;
+            --border: rgba(59, 130, 246, 0.18);
+            --card-bg: rgba(17, 24, 39, 0.85);
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+
+        /* Countdown pulse */
+#countdown-display {
+  animation: countdown-pulse 1s ease-in-out infinite;
+}
+@keyframes countdown-pulse {
+  0%,100% { opacity: 1; }
+  50%      { opacity: 0.7; }
+}
+
+        html,
+        body {
+            height: 100%;
+            width: 100%;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--navy);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(ellipse 80% 60% at 50% 30%,
+                    rgba(37, 99, 235, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .card {
+            width: 100%;
+            max-width: 420px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 40px;
+            position: relative;
+            z-index: 1;
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.4);
+        }
+
+        .form-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 32px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--blue);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 0 20px rgba(37, 99, 235, 0.5);
+        }
+
+        .logo-text {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .logo-text span {
+            color: var(--blue-bright);
+        }
+
+        .lock-icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: rgba(37, 99, 235, 0.12);
+            border: 2px solid rgba(37, 99, 235, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            margin: 0 auto 24px;
+            animation: pulse-lock 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-lock {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 0 0 12px rgba(37, 99, 235, 0);
+            }
+        }
+
+        .form-title {
+            font-size: 22px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .form-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            text-align: center;
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        /* Doctor info strip */
+        .doctor-strip {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(30, 45, 69, 0.5);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+        }
+
+        .doctor-av {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--blue), #06b6d4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .doctor-info-name {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .doctor-info-email {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .form-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin-bottom: 7px;
+            display: block;
+        }
+
+        .input-wrap {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 44px 12px 14px;
+            background: rgba(30, 45, 69, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-input:focus {
+            border-color: var(--blue-bright);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* Show/hide password toggle */
+        .eye-btn {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 16px;
+            padding: 4px;
+            transition: color 0.2s;
+        }
+
+        .eye-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 13px;
+            background: var(--blue);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 20px rgba(37, 99, 235, 0.4);
+            transition: all 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+
+        .btn-ghost {
+            width: 100%;
+            padding: 12px;
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            display: block;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .btn-ghost:hover {
+            border-color: var(--blue-bright);
+            color: var(--text-primary);
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #f87171;
+            padding: 11px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Shake animation on error */
+        .shake {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            20% {
+                transform: translateX(-8px);
+            }
+
+            40% {
+                transform: translateX(8px);
+            }
+
+            60% {
+                transform: translateX(-6px);
+            }
+
+            80% {
+                transform: translateX(6px);
+            }
+        }
+
+        .attempts-left {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 12px;
+        }
+
+        .attempts-left span {
+            color: #f87171;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="card" id="main-card">
+        <div class="form-logo">
+            <div class="logo-icon">🫁</div>
+            <div class="logo-text">Diagnostic<span>AI</span></div>
+        </div>
+
+        <div class="lock-icon">🔐</div>
+        <h2 class="form-title">Verify Your Identity</h2>
+        <p class="form-subtitle">Enter your account password to access Settings</p>
+
+        <!-- Doctor strip -->
+        <div class="doctor-strip">
+            <div class="doctor-av">{{ doctor_name[:2].upper() }}</div>
+            <div>
+                <div class="doctor-info-name">Dr. {{ doctor_name }}</div>
+                <div class="doctor-info-email">{{ doctor }}</div>
+            </div>
+        </div>
+
+        {% if error and not locked %}
+        <div class="alert-error" id="error-msg">
+            🚫 {{ error }}
+        </div>
+        {% endif %}
+
+        {% if locked %}
+<div class="alert-error" style="flex-direction:column;gap:8px;">
+  <div>🔒 Too many failed attempts. Account temporarily locked.</div>
+  <div style="font-size:12px;color:var(--text-muted);">Auto-unlocks in:</div>
+  <div id="countdown-display"
+     style="font-family:'Space Mono',monospace;font-size:36px;
+            color:#f87171;text-align:center;letter-spacing:0.15em;
+            padding:12px 0;font-weight:700;
+            text-shadow:0 0 20px rgba(239,68,68,0.4);">
+  05:00
+</div>
+  <div style="height:6px;border-radius:3px;
+            background:rgba(30,45,69,0.8);
+            overflow:hidden;margin-top:8px;">
+    <div id="countdown-bar"
+         style="height:100%;border-radius:2px;
+                background:linear-gradient(90deg,#ef4444,#f97316);
+                width:100%;transition:width 1s linear;">
+    </div>
+  </div>
+</div>
+{% else %}
+        <form method="POST" action="/settings/verify" id="verify-form">
+            <label class="form-label">Account Password</label>
+            <div class="input-wrap">
+                <input type="password" name="password" id="password-input" class="form-input"
+                    placeholder="Enter your password" required autofocus>
+                <button type="button" class="eye-btn" onclick="togglePassword()">👁️</button>
+            </div>
+
+            <button type="submit" class="btn-primary" onclick="animateBtn(this)">
+                🔓 Unlock Settings
+            </button>
+        </form>
+
+        {% if attempts %}
+        <div class="attempts-left">
+            Failed attempts: <span>{{ attempts }}</span> / 3
+        </div>
+        {% endif %}
+        {% endif %}
+
+    <a href="/dashboard" class="btn-ghost" style="margin-top:12px;">← Back to Dashboard</a>
+    </div>
+
+    {% if error %}
+    <script>
+        // Shake card on error
+        document.getElementById('main-card').classList.add('shake');
+    </script>
+    {% endif %}
+
+    <script>
+function togglePassword() {
+  const inp = document.getElementById('password-input');
+  const btn = document.querySelector('.eye-btn');
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    btn.textContent = '🙈';
+  } else {
+    inp.type = 'password';
+    btn.textContent = '👁️';
+  }
+}
+
+function animateBtn(btn) {
+  btn.textContent = '🔄 Verifying...';
+  btn.style.opacity = '0.8';
+}
+    </script>
+
+    {% if error %}
+    <script>
+document.getElementById('main-card').classList.add('shake');
+    </script>
+    {% endif %}
+
+    {% if locked %}
+    <script>
+// ── COUNTDOWN TIMER ──
+const LOCK_SECONDS = 300; // 5 minutes
+const display = document.getElementById('countdown-display');
+const bar     = document.getElementById('countdown-bar');
+
+// Try to get lock time from sessionStorage
+let lockStart = sessionStorage.getItem('lock_start');
+if (!lockStart) {
+  lockStart = Date.now();
+  sessionStorage.setItem('lock_start', lockStart);
+}
+
+function updateCountdown() {
+  const elapsed   = Math.floor((Date.now() - parseInt(lockStart)) / 1000);
+  const remaining = Math.max(0, LOCK_SECONDS - elapsed);
+
+  const mins = String(Math.floor(remaining / 60)).padStart(2, '0');
+  const secs = String(remaining % 60).padStart(2, '0');
+
+  display.textContent = `${mins}:${secs}`;
+
+  // Update progress bar
+  const pct = (remaining / LOCK_SECONDS) * 100;
+  bar.style.width = pct + '%';
+
+  // Color changes as time decreases
+  if (remaining <= 60) {
+    display.style.color = '#f97316'; // orange in last minute
+  }
+  if (remaining <= 30) {
+    display.style.color = '#f59e0b'; // amber in last 30s
+  }
+
+  if (remaining <= 0) {
+    // Time's up — clear lock and reload
+    display.textContent = '00:00';
+    bar.style.width = '0%';
+    sessionStorage.removeItem('lock_start');
+
+    display.textContent = '✅ Unlocked!';
+    display.style.color = '#34d399';
+    display.style.fontSize = '18px';
+
+    setTimeout(() => {
+      window.location.href = '/settings/reset-lock';
+    }, 1000);
+  }
+}
+
+// Run immediately then every second
+updateCountdown();
+const timerInterval = setInterval(updateCountdown, 1000);
+    </script>
+    {% endif %}
+</body>
+
+</html>

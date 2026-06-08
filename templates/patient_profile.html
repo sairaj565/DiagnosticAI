@@ -1,0 +1,485 @@
+{% extends "base.html" %}
+
+{% block title %}DiagnosticAI — Patient History{% endblock %}
+
+{% block extra_styles %}
+<style>
+    /* Styling adjustments for patient profile history timeline */
+    .profile-header-card {
+        background: linear-gradient(135deg, rgba(37,99,235,.15), rgba(6,182,212,.1));
+        border: 1px solid rgba(37, 99, 235, 0.3);
+        border-radius: 16px;
+        padding: 28px 32px;
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        margin-bottom: 28px;
+    }
+    .profile-avatar {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--blue), var(--cyan));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        font-weight: 700;
+        color: white;
+        flex-shrink: 0;
+        box-shadow: 0 0 24px rgba(37, 99, 235, 0.3);
+    }
+    .profile-name {
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 4px;
+        color: var(--text-primary);
+        text-transform: capitalize;
+    }
+    .profile-meta {
+        font-size: 13.5px;
+        color: var(--text-secondary);
+    }
+    .profile-stats {
+        margin-left: auto;
+        display: flex;
+        gap: 24px;
+    }
+    .pstat {
+        text-align: center;
+        min-width: 80px;
+    }
+    .pstat-num {
+        font-family: var(--font-mono);
+        font-size: 24px;
+        font-weight: 700;
+    }
+    .pstat-lbl {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    /* Trend badge styles */
+    .trend-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .trend-improving {
+        background: rgba(16, 185, 129, 0.08);
+        color: #34d399;
+        border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+    .trend-worsening {
+        background: rgba(239, 68, 68, 0.08);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.25);
+    }
+    .trend-stable {
+        background: rgba(245, 158, 11, 0.08);
+        color: #fbbf24;
+        border: 1px solid rgba(245, 158, 11, 0.25);
+    }
+    .trend-single {
+        background: rgba(59, 130, 246, 0.08);
+        color: #93c5fd;
+        border: 1px solid rgba(59, 130, 246, 0.25);
+    }
+    
+    /* Timeline styling */
+    .timeline {
+        position: relative;
+        padding-left: 36px;
+    }
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 11px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: linear-gradient(180deg, var(--blue) 0%, rgba(37, 99, 235, 0.1) 100%);
+    }
+    .timeline-item {
+        position: relative;
+        margin-bottom: 24px;
+    }
+    .timeline-item:last-child {
+        margin-bottom: 0;
+    }
+    .timeline-dot {
+        position: absolute;
+        left: -36px;
+        top: 16px;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        border: 2px solid;
+        flex-shrink: 0;
+        z-index: 2;
+    }
+    .dot-tumor {
+        background: var(--navy);
+        border-color: #ef4444;
+        color: #f87171;
+        box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
+    }
+    .dot-normal {
+        background: var(--navy);
+        border-color: #10b981;
+        color: #34d399;
+        box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+    }
+    .timeline-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+        transition: all 0.2s ease;
+    }
+    .timeline-card:hover {
+        border-color: var(--blue-bright);
+        transform: translateX(4px);
+    }
+    .timeline-card.tumor-card {
+        border-left: 4px solid var(--red);
+    }
+    .timeline-card.normal-card {
+        border-left: 4px solid var(--green);
+    }
+    .tc-top {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+    }
+    .tc-date {
+        font-size: 12px;
+        color: var(--text-muted);
+        font-family: var(--font-mono);
+    }
+    .tc-pid {
+        font-size: 11px;
+        color: var(--text-secondary);
+        background: rgba(30, 45, 69, 0.8);
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-family: var(--font-mono);
+        border: 1px solid var(--border);
+    }
+    .tc-body {
+        display: grid;
+        grid-template-columns: auto 1fr 1fr 1fr 1fr;
+        gap: 20px;
+        align-items: center;
+    }
+    @media (max-width: 768px) {
+        .tc-body {
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+    }
+    .tc-field {
+        font-size: 11px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .tc-val {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-top: 2px;
+    }
+    .conf-val {
+        font-family: var(--font-mono);
+        font-size: 14px;
+        font-weight: 700;
+    }
+    .conf-tumor {
+        color: #f87171;
+    }
+    .conf-normal {
+        color: #34d399;
+    }
+    .scan-mini {
+        width: 56px;
+        height: 56px;
+        border-radius: 8px;
+        object-fit: cover;
+        border: 1px solid var(--border);
+    }
+    .scan-mini-placeholder {
+        width: 56px;
+        height: 56px;
+        border-radius: 8px;
+        background: rgba(30, 45, 69, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        border: 1px solid var(--border);
+    }
+    
+    /* Trend chart bar styling */
+    .trend-bar-wrap {
+        margin-bottom: 28px;
+    }
+    .trend-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .trend-bars {
+        display: flex;
+        gap: 10px;
+        align-items: flex-end;
+        height: 80px;
+        padding-bottom: 4px;
+        border-bottom: 1px solid var(--border);
+    }
+    .trend-bar-col {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        flex: 1;
+        max-width: 64px;
+    }
+    .trend-bar {
+        width: 100%;
+        border-radius: 4px 4px 0 0;
+        min-height: 4px;
+        transition: height .4s ease;
+    }
+    .trend-bar.tumor {
+        background: linear-gradient(180deg, #ef4444, #b91c1c);
+        box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
+    }
+    .trend-bar.normal {
+        background: linear-gradient(180deg, #10b981, #047857);
+        box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
+    }
+    .trend-bar-label {
+        font-size: 9px;
+        color: var(--text-muted);
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 100%;
+        font-family: var(--font-mono);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{# ── Top bar ── #}
+<div style="display:flex; align-items:center; gap:16px; margin-bottom:24px; flex-wrap: wrap;">
+    <a href="/records" class="btn btn-ghost btn-sm">
+        <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> Back to Records
+    </a>
+    <div>
+        <h1 style="font-size:26px; font-weight:700; color:var(--text-primary);">Patient History</h1>
+        <p style="font-size:13px; color:var(--text-secondary); margin-top:2px;">Complete scan timeline for {{ profile['name'] }}</p>
+    </div>
+    <a href="/upload"
+       class="btn btn-primary"
+       style="margin-left:auto;">
+        <i data-lucide="plus" style="width: 16px; height: 16px;"></i> New Scan Analysis
+    </a>
+</div>
+
+{# ── Computed stats ── #}
+{% set total_visits = scans|length %}
+{% set tumor_count  = scans|selectattr('result','equalto','Tumor Detected')|list|length %}
+{% set normal_count = total_visits - tumor_count %}
+{% set latest = scans[0] if scans else none %}
+{% set oldest = scans[-1] if scans else none %}
+
+{# ── Profile header ── #}
+<div class="profile-header-card">
+    <div class="profile-avatar">{{ profile['name'][:2].upper() }}</div>
+    <div>
+        <div class="profile-name">{{ profile['name'] }}</div>
+        <div class="profile-meta">
+            {{ profile['gender'] or '—' }}
+            {% if profile['phone'] %} · {{ profile['phone'] }}{% endif %}
+            · Ref: <span style="font-family: var(--font-mono); font-size:12px; color:var(--blue-glow);">{{ profile['ref_id'] }}</span>
+        </div>
+        <div style="margin-top:10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            {% if total_visits == 1 %}
+                <span class="trend-badge trend-single">
+                    <i data-lucide="file-text" style="width: 12px; height: 12px;"></i> 1 Visit
+                </span>
+            {% elif latest and oldest and latest['result'] != oldest['result'] %}
+                {% if latest['result'] == 'Normal' %}
+                    <span class="trend-badge trend-improving">
+                        <i data-lucide="trending-up" style="width: 12px; height: 12px;"></i> Improving — Latest cleared
+                    </span>
+                {% else %}
+                    <span class="trend-badge trend-worsening">
+                        <i data-lucide="trending-down" style="width: 12px; height: 12px;"></i> Worsening — Tumor detected
+                    </span>
+                {% endif %}
+            {% elif tumor_count == total_visits %}
+                <span class="trend-badge trend-worsening">
+                    <i data-lucide="alert-triangle" style="width: 12px; height: 12px;"></i> All scans positive
+                </span>
+            {% elif normal_count == total_visits %}
+                <span class="trend-badge trend-improving">
+                    <i data-lucide="check-circle" style="width: 12px; height: 12px;"></i> All scans normal
+                </span>
+            {% else %}
+                <span class="trend-badge trend-stable">
+                    <i data-lucide="activity" style="width: 12px; height: 12px;"></i> Mixed results
+                </span>
+            {% endif %}
+            {% if oldest %}
+                <span style="font-size:12px; color:var(--text-muted);">Since {{ oldest['created_at'][:10] }}</span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="profile-stats">
+        <div class="pstat">
+            <div class="pstat-num" style="color:var(--blue-glow);">{{ total_visits }}</div>
+            <div class="pstat-lbl">Total Visits</div>
+        </div>
+        <div class="pstat">
+            <div class="pstat-num" style="color:#f87171;">{{ tumor_count }}</div>
+            <div class="pstat-lbl">Tumor</div>
+        </div>
+        <div class="pstat">
+            <div class="pstat-num" style="color:#34d399;">{{ normal_count }}</div>
+            <div class="pstat-lbl">Normal</div>
+        </div>
+    </div>
+</div>
+
+{# ── Confidence trend bars (oldest → latest) ── #}
+{% if total_visits > 1 %}
+<div class="card" style="margin-bottom:24px;">
+    <div class="trend-title">
+        <i data-lucide="bar-chart-2" style="width: 16px; height: 16px; color: var(--blue-glow);"></i>
+        <span>Confidence Score Trend (oldest → latest)</span>
+    </div>
+    <div class="trend-bars">
+        {% for scan in scans|reverse %}
+        <div class="trend-bar-col">
+            <div class="trend-bar {{ 'tumor' if scan['result'] == 'Tumor Detected' else 'normal' }}"
+                 style="height:{{ [scan['confidence'] or 0, 4]|max * 0.7 }}px;"
+                 title="{{ scan['confidence'] }}% — {{ scan['result'] }}"></div>
+            <div class="trend-bar-label">{{ scan['created_at'][:7] if scan['created_at'] else '—' }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    <div style="display:flex; gap:16px; margin-top:12px;">
+        <span style="font-size:12px; color:#f87171; display:flex; align-items:center; gap:4px;">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: #ef4444; display: inline-block;"></span> Tumor Detected
+        </span>
+        <span style="font-size:12px; color:#34d399; display:flex; align-items:center; gap:4px;">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block;"></span> Normal
+        </span>
+    </div>
+</div>
+{% endif %}
+
+{# ── Scan Timeline ── #}
+<div class="card">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+        <div style="font-size:16px; font-weight:600; display:flex; align-items:center; gap:8px;">
+            <i data-lucide="clock" style="width: 18px; height: 18px; color: var(--blue-glow);"></i>
+            <span>Scan Timeline</span>
+            <span style="font-size:12.5px; color:var(--text-muted); font-weight:400; margin-left:8px;">
+                {{ total_visits }} visit{{ 's' if total_visits != 1 else '' }} · Most recent first
+            </span>
+        </div>
+    </div>
+
+    {% if scans %}
+    <div class="timeline">
+        {% for scan in scans %}
+        {% set is_tumor  = scan['result'] == 'Tumor Detected' %}
+        {% set visit_num = total_visits - loop.index0 %}
+
+        <div class="timeline-item">
+            <div class="timeline-dot {{ 'dot-tumor' if is_tumor else 'dot-normal' }}">
+                {{ visit_num }}
+            </div>
+            <div class="timeline-card {{ 'tumor-card' if is_tumor else 'normal-card' }}">
+                <div class="tc-top">
+                    <span class="tc-date">{{ scan['created_at'][:10] if scan['created_at'] else '—' }}</span>
+                    <span class="tc-pid">{{ scan['patient_id'] }}</span>
+                    <span class="badge {{ 'badge-red' if is_tumor else 'badge-green' }}">{{ scan['result'] }}</span>
+
+                    {# Latest badge — first in list #}
+                    {% if loop.first %}
+                        <span style="font-size:11px; background:rgba(59,130,246,.15); color:#93c5fd; border:1px solid rgba(59,130,246,.3); padding:2px 8px; border-radius:10px;">Latest Visit</span>
+                    {% endif %}
+
+                    {# First Visit badge — last in list, only show if >1 visit #}
+                    {% if loop.last and total_visits > 1 %}
+                        <span style="font-size:11px; background:rgba(30,45,69,.8); color:#64748b; border:1px solid rgba(30,45,69,1); padding:2px 8px; border-radius:10px;">First Visit</span>
+                    {% endif %}
+
+                    <a href="/result/{{ scan['patient_id'] }}" class="btn btn-ghost btn-sm" style="margin-left:auto;">
+                        <i data-lucide="eye" style="width: 14px; height: 14px;"></i> View Report
+                    </a>
+                </div>
+                <div class="tc-body">
+                    <div>
+                        {% if scan['image_path'] %}
+                            <img src="/static/uploads/{{ scan['image_path'] }}" class="scan-mini" alt="scan">
+                        {% else %}
+                            <div class="scan-mini-placeholder">
+                                <i data-lucide="image" style="width: 20px; height: 20px; color: var(--text-muted);"></i>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <div class="tc-field">Confidence</div>
+                        <div class="conf-val {{ 'conf-tumor' if is_tumor else 'conf-normal' }}">{{ scan['confidence'] }}%</div>
+                    </div>
+                    <div>
+                        <div class="tc-field">Scan Type</div>
+                        <div class="tc-val">{{ scan['scan_type'] or 'CT Scan' }}</div>
+                    </div>
+                    <div>
+                        <div class="tc-field">Age at Visit</div>
+                        <div class="tc-val">{{ scan['age'] or '—' }}</div>
+                    </div>
+                </div>
+                {% if scan['symptoms'] and scan['symptoms'] != 'None reported' %}
+                <div style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(30,45,69,.6); font-size:12.5px; color:var(--text-secondary);">
+                    <strong style="color:var(--text-primary); font-weight:500;">Symptoms:</strong> {{ scan['symptoms'] }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center; padding:48px; color:var(--text-muted);">
+        <i data-lucide="folder-open" style="width: 48px; height: 48px; opacity: 0.5; margin-bottom: 12px;"></i>
+        <div>No scans linked to this profile yet.</div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

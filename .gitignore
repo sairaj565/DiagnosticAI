@@ -1,0 +1,32 @@
+# Python Compiled Files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Databases
+database/*.db
+database/*.sqlite
+
+# Environment Variables (Secrets)
+.env
+
+# Patient Uploads (Keep folder, ignore contents)
+static/uploads/*
+!static/uploads/.gitkeep
+
+# IDE Configs
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+dataset/

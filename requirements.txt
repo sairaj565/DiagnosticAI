@@ -1,0 +1,11 @@
+Flask
+Flask-Mail
+python-dotenv
+numpy
+opencv-python
+tensorflow==2.10.0
+openpyxl
+reportlab
+Pillow
+matplotlib
+scikit-learn

@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+
+{% block title %}DiagnosticAI — Edit Patient{% endblock %}
+
+{% block extra_styles %}
+<style>
+    /* Styling adjustments for edit patient form layout */
+    .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 28px;
+    }
+    .page-title {
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        background: linear-gradient(135deg, var(--text-primary) 30%, var(--text-secondary) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .page-desc {
+        font-size: 14px;
+        color: var(--text-secondary);
+        margin-top: 4px;
+    }
+    
+    .section-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--blue-glow);
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        margin-bottom: 18px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--border);
+    }
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+        margin-bottom: 18px;
+    }
+    @media (max-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .form-group.full {
+        grid-column: 1/-1;
+    }
+    .form-label {
+        font-size: 11px;
+        color: var(--text-secondary);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .form-input {
+        padding: 10px 14px;
+        background: rgba(30, 45, 69, 0.35);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        color: var(--text-primary);
+        font-family: var(--font-sans);
+        font-size: 14px;
+        outline: none;
+        transition: all 0.2s ease;
+        width: 100%;
+    }
+    .form-input:focus {
+        border-color: var(--blue-bright);
+        background: rgba(30, 45, 69, 0.65);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+    }
+    .form-input::placeholder {
+        color: var(--text-muted);
+    }
+    select.form-input {
+        cursor: pointer;
+    }
+    select.form-input option {
+        background: var(--navy-mid);
+    }
+    textarea.form-input {
+        resize: vertical;
+        min-height: 100px;
+        line-height: 1.6;
+    }
+    .symptoms-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 10px;
+    }
+    .symptom-cb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 8px;
+        background: rgba(30, 45, 69, 0.2);
+        border: 1px solid var(--border);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 13.5px;
+        color: var(--text-secondary);
+        user-select: none;
+    }
+    .symptom-cb:hover {
+        border-color: var(--blue-bright);
+        background: rgba(37, 99, 235, 0.08);
+        color: var(--text-primary);
+    }
+    .symptom-cb input {
+        accent-color: var(--blue-bright);
+        width: 16px;
+        height: 16px;
+    }
+    .smoking-detail-box {
+        background: rgba(30, 45, 69, 0.2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 18px;
+        margin-top: 14px;
+        display: none;
+    }
+    .smoking-detail-box.show {
+        display: block;
+    }
+    
+    .readonly-field {
+        font-family: var(--font-mono);
+        font-size: 12.5px;
+        padding: 10px 14px;
+        background: rgba(5, 8, 20, 0.5);
+        border: 1px solid rgba(30, 45, 69, 0.5);
+        border-radius: 10px;
+        color: var(--blue-glow);
+    }
+    .info-note {
+        font-size: 12px;
+        color: var(--text-muted);
+        padding: 10px 14px;
+        background: rgba(37, 99, 235, 0.06);
+        border: 1px solid rgba(37, 99, 235, 0.15);
+        border-radius: 8px;
+        margin-top: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div>
+        <h1 class="page-title">✏️ Edit Patient</h1>
+        <p class="page-desc">Update patient details for <strong style="color:var(--blue-glow);">{{ p['patient_id'] }}</strong> · AI result and scan image are locked</p>
+    </div>
+    <a href="/records" class="btn btn-ghost">
+        <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> Back to Records
+    </a>
+</div>
+
+<form method="POST" action="/patient/edit/{{ patient_id }}">
+
+    <!-- READ-ONLY INFO -->
+    <div class="card" style="margin-bottom:20px; border-color: rgba(37,99,235,.2);">
+        <div class="section-title">🔒 Read-Only — AI Analysis Results</div>
+        <div class="form-grid">
+            <div class="form-group">
+                <div class="form-label">Patient ID</div>
+                <div class="readonly-field">{{ p['patient_id'] }}</div>
+            </div>
+            <div class="form-group">
+                <div class="form-label">AI Prediction</div>
+                <div class="readonly-field" style="color:{{ '#f87171' if p['result'] == 'Tumor Detected' else '#34d399' }};">
+                    {{ p['result'] }} — {{ p['confidence'] }}% confidence
+                </div>
+            </div>
+        </div>
+        <div class="info-note">
+            <i data-lucide="info" style="width: 16px; height: 16px; flex-shrink: 0;"></i>
+            <span>The AI result, confidence score, and scan image are locked and cannot be edited. Only patient demographics and clinical notes can be updated.</span>
+        </div>
+    </div>
+
+    <!-- PATIENT DETAILS -->
+    <div class="card" style="margin-bottom:20px;">
+        <div class="section-title">👤 Patient Demographics</div>
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">Full Name *</label>
+                <input type="text" name="name" class="form-input" required value="{{ p['name'] or '' }}" placeholder="Patient full name">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Age</label>
+                <input type="number" name="age" class="form-input" min="0" max="120" value="{{ p['age'] or '' }}" placeholder="Age in years">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Gender</label>
+                <select name="gender" class="form-input">
+                    <option value="">Select gender</option>
+                    <option value="Male"   {{ 'selected' if p['gender'] == 'Male' }}>Male</option>
+                    <option value="Female" {{ 'selected' if p['gender'] == 'Female' }}>Female</option>
+                    <option value="Other"  {{ 'selected' if p['gender'] == 'Other' }}>Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Phone</label>
+                <input type="text" name="phone" class="form-input" value="{{ p['phone'] or '' }}" placeholder="+91 98765 43210">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Scan Type</label>
+                <select name="scan_type" class="form-input">
+                    <option value="CT Scan"  {{ 'selected' if p['scan_type'] == 'CT Scan' }}>CT Scan</option>
+                    <option value="X-Ray"    {{ 'selected' if p['scan_type'] == 'X-Ray' }}>X-Ray</option>
+                    <option value="MRI"      {{ 'selected' if p['scan_type'] == 'MRI' }}>MRI</option>
+                    <option value="PET Scan" {{ 'selected' if p['scan_type'] == 'PET Scan' }}>PET Scan</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Family History of Cancer</label>
+                <select name="family_history" class="form-input">
+                    <option value="">None / Unknown</option>
+                    <option value="Yes" {{ 'selected' if family_history == 'Yes' }}>Yes</option>
+                    <option value="No"  {{ 'selected' if family_history == 'No' }}>No</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- SMOKING -->
+    <div class="card" style="margin-bottom:20px;">
+        <div class="section-title">🚬 Smoking History</div>
+        <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Smoking Status</label>
+            <select name="smoking" id="smoking-select" class="form-input" style="max-width:360px;" onchange="toggleSmokingDetail()">
+                <option value="Never Smoked"   {{ 'selected' if p['smoking'] == 'Never Smoked' }}>Never Smoked</option>
+                <option value="Current Smoker" {{ 'selected' if p['smoking'] == 'Current Smoker' }}>Current Smoker</option>
+                <option value="Former Smoker"  {{ 'selected' if p['smoking'] == 'Former Smoker' }}>Former Smoker</option>
+                <option value="Passive Smoker" {{ 'selected' if p['smoking'] == 'Passive Smoker' }}>Passive Smoker</option>
+            </select>
+        </div>
+
+        <div class="smoking-detail-box {{ 'show' if p['smoking'] in ('Current Smoker','Former Smoker') }}" id="smoking-detail">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Smoking Type</label>
+                    <select name="smoking_type" id="smoking-type" class="form-input">
+                        <option value="Cigarette" {{ 'selected' if p['smoking_type'] == 'Cigarette' }}>🚬 Cigarette</option>
+                        <option value="Beedi"     {{ 'selected' if p['smoking_type'] == 'Beedi' }}>🌿 Beedi</option>
+                        <option value="Both"      {{ 'selected' if p['smoking_type'] == 'Both' }}>Both</option>
+                        <option value="Other"     {{ 'selected' if p['smoking_type'] == 'Other' }}>Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Sticks / Day</label>
+                    <input type="number" name="amount_per_day" class="form-input" min="0" step="0.5"
+                           value="{{ p['amount_per_day'] | int if p['amount_per_day'] else '' }}" placeholder="e.g. 15">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Years Smoked</label>
+                    <input type="number" name="years_smoked" class="form-input" min="0" step="0.5"
+                           value="{{ p['years_smoked'] | int if p['years_smoked'] else '' }}" placeholder="e.g. 20">
+                </div>
+                <div class="form-group" id="quit-group" style="{{ 'display:none' if p['smoking'] != 'Former Smoker' else '' }}">
+                    <label class="form-label">Years Since Quit</label>
+                    <input type="number" name="years_since_quit" class="form-input" min="0" step="0.5"
+                           value="{{ p['years_since_quit'] | int if p['years_since_quit'] else '' }}" placeholder="e.g. 5">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SYMPTOMS -->
+    <div class="card" style="margin-bottom:20px;">
+        <div class="section-title">🩺 Symptoms</div>
+        <div class="symptoms-grid">
+            {% set all_symptoms = ['Persistent Cough','Chest Pain','Shortness of Breath','Weight Loss','Fatigue','Haemoptysis','Wheezing','Hoarseness','Bone Pain','Headache'] %}
+            {% for symptom in all_symptoms %}
+            <label class="symptom-cb">
+                <input type="checkbox" name="symptoms" value="{{ symptom }}"
+                       {{ 'checked' if symptom in symptoms_list }}>
+                <span>{{ symptom }}</span>
+            </label>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- NOTES -->
+    <div class="card" style="margin-bottom:28px;">
+        <div class="section-title">📝 Clinical Notes</div>
+        <div class="form-group">
+            <label class="form-label">Doctor's Notes</label>
+            <textarea name="notes" class="form-input" placeholder="Clinical observations, follow-up notes...">{{ notes_clean }}</textarea>
+        </div>
+    </div>
+
+    <!-- SUBMIT -->
+    <div style="display:flex; gap: 14px; align-items: center; flex-wrap: wrap;">
+        <button type="submit" class="btn btn-primary">
+            <i data-lucide="save" style="width: 16px; height: 16px;"></i> Save Changes
+        </button>
+        <a href="/records" class="btn btn-ghost">Cancel</a>
+        <span style="font-size:12px; color: var(--text-muted);">
+            Changes will be reflected across the patient timeline and result page immediately.
+        </span>
+    </div>
+
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function toggleSmokingDetail() {
+        const val = document.getElementById('smoking-select').value;
+        const box = document.getElementById('smoking-detail');
+        const quit = document.getElementById('quit-group');
+        if (box) {
+            box.classList.toggle('show', val === 'Current Smoker' || val === 'Former Smoker');
+        }
+        if (quit) {
+            quit.style.display = val === 'Former Smoker' ? '' : 'none';
+        }
+    }
+</script>
+{% endblock %}

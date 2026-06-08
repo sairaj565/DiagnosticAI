@@ -1,0 +1,585 @@
+{% extends "base.html" %}
+
+{% block title %}DiagnosticAI — Patient Records{% endblock %}
+
+{% block extra_styles %}
+<style>
+    /* Custom style tweaks for patient records search and layout */
+    .records-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 32px;
+    }
+    .records-title-group h1 {
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin-bottom: 6px;
+        background: linear-gradient(135deg, var(--text-primary) 30%, var(--text-secondary) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .records-subtitle {
+        font-size: 14px;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .filters-bar {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 24px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    .search-box {
+        flex: 1;
+        min-width: 280px;
+        position: relative;
+    }
+    .search-box i {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        width: 16px;
+        height: 16px;
+        pointer-events: none;
+    }
+    .search-box input {
+        width: 100%;
+        padding: 11px 16px 11px 42px;
+        background: rgba(10, 15, 30, 0.65);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        color: var(--text-primary);
+        font-size: 14px;
+        transition: all 0.22s ease;
+    }
+    .search-box input:hover {
+        border-color: rgba(59, 130, 246, 0.35);
+        background: rgba(10, 15, 30, 0.85);
+    }
+    .search-box input:focus {
+        outline: none;
+        border-color: var(--blue-bright);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+    .select-box {
+        padding: 11px 14px;
+        background: rgba(10, 15, 30, 0.65);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        color: var(--text-primary);
+        font-size: 14px;
+        cursor: pointer;
+        outline: none;
+        transition: all 0.22s ease;
+    }
+    .select-box:hover {
+        border-color: rgba(59, 130, 246, 0.35);
+        background: rgba(10, 15, 30, 0.85);
+    }
+    .select-box:focus {
+        border-color: var(--blue-bright);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+    .select-box option {
+        background: var(--navy-mid);
+        color: var(--text-primary);
+    }
+
+    /* Table styles matching premium design */
+    .pid {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        color: var(--blue-glow);
+        background: rgba(37, 99, 235, 0.12);
+        padding: 4px 10px;
+        border-radius: 6px;
+        border: 1px solid rgba(37, 99, 235, 0.25);
+        white-space: nowrap;
+        display: inline-block;
+        letter-spacing: 0.02em;
+    }
+    
+    .patient-name {
+        font-weight: 600;
+        color: var(--text-primary);
+        text-transform: capitalize;
+    }
+    
+    .result-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 12.5px;
+        font-weight: 600;
+        border: 1px solid transparent;
+    }
+    .result-normal {
+        background: rgba(16, 185, 129, 0.08);
+        color: #34d399;
+        border-color: rgba(16, 185, 129, 0.25);
+    }
+    .result-tumor {
+        background: rgba(239, 68, 68, 0.08);
+        color: #f87171;
+        border-color: rgba(239, 68, 68, 0.25);
+    }
+    
+    .confidence {
+        font-family: var(--font-mono);
+        font-weight: 700;
+    }
+    .conf-high {
+        color: var(--green);
+    }
+    .conf-danger {
+        color: var(--red);
+    }
+    
+    .smoking-never { color: #34d399; font-weight: 500; }
+    .smoking-former { color: #fbbf24; font-weight: 500; }
+    .smoking-current { color: #f87171; font-weight: 500; }
+
+    .action-cell {
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .action-btn {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text-secondary);
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .action-btn:hover {
+        border-color: var(--blue-bright);
+        color: var(--text-primary);
+        background: rgba(59, 130, 246, 0.08);
+        box-shadow: 0 0 10px rgba(59, 130, 246, 0.15);
+    }
+    
+    .actions-dropdown {
+        display: none;
+        position: absolute;
+        right: 0;
+        top: calc(100% + 6px);
+        background: rgba(8, 12, 28, 0.95);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(59, 130, 246, 0.25);
+        border-radius: 10px;
+        padding: 6px;
+        min-width: 140px;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+        z-index: 1000;
+        animation: fadeInScale 0.18s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    .actions-dropdown.show {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    @keyframes fadeInScale {
+        from { opacity: 0; transform: scale(0.9) translateY(-10px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    
+    .dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        width: 100%;
+        text-align: left;
+        transition: all 0.15s ease;
+        font-family: var(--font-sans);
+        font-weight: 500;
+        outline: none;
+    }
+    .dropdown-item:hover {
+        background: rgba(59, 130, 246, 0.12);
+        color: var(--text-primary);
+    }
+    .dropdown-item.btn-delete:hover {
+        background: rgba(239, 68, 68, 0.12) !important;
+        color: var(--red) !important;
+    }
+    .dropdown-item i {
+        width: 14px;
+        height: 14px;
+        color: var(--text-muted);
+        transition: color 0.15s ease;
+    }
+    .dropdown-item:hover i {
+        color: var(--text-primary);
+    }
+    .dropdown-item.btn-delete:hover i {
+        color: var(--red) !important;
+    }
+    .clickable-row {
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .clickable-row:hover td {
+        background: rgba(59, 130, 246, 0.05) !important;
+        border-color: rgba(59, 130, 246, 0.15) !important;
+    }
+    @keyframes slideIn {
+        from { transform: translateX(120%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(120%); opacity: 0; }
+    }
+    @keyframes modalSlideIn {
+        from { transform: scale(0.95); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flash-container no-print" style="position: fixed; top: 24px; right: 24px; z-index: 10000; display: flex; flex-direction: column; gap: 10px;">
+      {% for category, message in messages %}
+        <div class="flash-toast" style="padding: 14px 24px; border-radius: 12px; font-weight: 600; font-size: 13.5px; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px); animation: slideIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards; background: {{ 'rgba(239, 68, 68, 0.12)' if category == 'error' else 'rgba(16, 185, 129, 0.12)' }}; border: 1px solid {{ 'rgba(239, 68, 68, 0.3)' if category == 'error' else 'rgba(16, 185, 129, 0.3)' }}; color: {{ '#f87171' if category == 'error' else '#34d399' }};">
+          <span>{{ '⚠️' if category == 'error' else '✅' }}</span>
+          <span>{{ message }}</span>
+          <button onclick="this.parentElement.remove()" style="background: none; border: none; color: inherit; cursor: pointer; font-size: 16px; margin-left: 10px; opacity: 0.6; line-height: 1;">✕</button>
+        </div>
+      {% endfor %}
+    </div>
+    <script>
+      setTimeout(() => {
+        document.querySelectorAll('.flash-toast').forEach(toast => {
+          toast.style.animation = 'slideOut 0.3s ease forwards';
+          setTimeout(() => toast.remove(), 300);
+        });
+      }, 4000);
+    </script>
+  {% endif %}
+{% endwith %}
+<div class="records-header">
+    <div class="records-title-group">
+        <h1>Patient Records</h1>
+        <div class="records-subtitle">
+            <i data-lucide="users" style="width: 16px; height: 16px;"></i>
+            <span>Your patients only · <strong id="patients-count-badge">{{ patients|length }}</strong> unique patients (<strong style="color: var(--blue-glow);">{{ total_scans }}</strong> total scans analyzed)</span>
+        </div>
+    </div>
+    <div style="display: flex; gap: 12px;">
+        <a href="/export/pdf" class="btn btn-ghost" target="_blank">
+            <i data-lucide="file-text" style="width: 16px; height: 16px;"></i> Export PDF
+        </a>
+        <a href="/export/excel" class="btn btn-ghost" target="_blank">
+            <i data-lucide="download" style="width: 16px; height: 16px;"></i> Export Excel
+        </a>
+        <a href="/upload" class="btn btn-primary">
+            <i data-lucide="plus" style="width: 16px; height: 16px;"></i> Upload New Scan
+        </a>
+    </div>
+</div>
+
+<div class="filters-bar">
+    <div class="search-box">
+        <i data-lucide="search"></i>
+        <input type="text" placeholder="Search patient name or Reference ID..." id="searchInput" onkeyup="filterTable()">
+    </div>
+    <select class="select-box" id="resultFilter" onchange="filterTable()">
+        <option value="">All Results</option>
+        <option value="Normal">Normal Only</option>
+        <option value="Tumor Detected">Tumor Detected</option>
+    </select>
+    <select class="select-box" id="smokeFilter" onchange="filterTable()">
+        <option value="">All Smoking Status</option>
+        <option value="Never">Never Smoked</option>
+        <option value="Former">Former Smoker</option>
+        <option value="Current">Current Smoker</option>
+        <option value="Passive">Passive Smoker</option>
+    </select>
+    <button class="btn btn-ghost" onclick="clearFilters()" style="padding: 11px 16px;">
+        <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> Clear
+    </button>
+</div>
+
+<div class="table-wrapper">
+    <table class="records-table" id="patientTable">
+        <thead>
+            <tr>
+                <th style="width: 140px;">Ref ID</th>
+                <th>Name</th>
+                <th style="width: 80px;">Age</th>
+                <th style="width: 120px;">Scan Type</th>
+                <th>Latest Result</th>
+                <th style="width: 120px;">Confidence</th>
+                <th>Smoking</th>
+                <th>Last Visit</th>
+                <th style="text-align: center; width: 100px;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for patient in patients %}
+            <tr data-id="{{ patient.patient_id }}" class="clickable-row" title="Double click to view scan report">
+                <td><span class="pid">{{ patient.profile_ref_id }}</span></td>
+                <td class="patient-name">{{ patient.name }}</td>
+                <td>{{ patient.age or '-' }}</td>
+                <td>{{ patient.scan_type or 'CT Scan' }}</td>
+                <td>
+                    {% if patient.result == 'Normal' %}
+                    <span class="result-badge result-normal">Normal</span>
+                    {% elif patient.result == 'Tumor Detected' %}
+                    <span class="result-badge result-tumor">Tumor Detected</span>
+                    {% else %}
+                    <span class="result-badge" style="background: rgba(148, 163, 184, 0.1); color: var(--text-secondary); border-color: rgba(148, 163, 184, 0.2);">No Scan</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if patient.confidence is not none %}
+                        {% set conf = patient.confidence * 100 if patient.confidence <= 1.0 else patient.confidence %}
+                        {% if patient.result == 'Normal' %}
+                        <span class="confidence conf-high">{{ "%.2f"|format(conf) }}%</span>
+                        {% else %}
+                        <span class="confidence conf-danger">{{ "%.2f"|format(conf) }}%</span>
+                        {% endif %}
+                    {% else %}
+                    <span class="confidence">-</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if not patient.smoking or patient.smoking == '-' %}
+                    <span>-</span>
+                    {% elif 'Never' in patient.smoking %}
+                    <span class="smoking-never">Never Smoked</span>
+                    {% elif 'Former' in patient.smoking %}
+                    <span class="smoking-former">Former Smoker</span>
+                    {% elif 'Current' in patient.smoking %}
+                    <span class="smoking-current">Current Smoker</span>
+                    {% elif 'Passive' in patient.smoking %}
+                    <span class="smoking-former">Passive Smoker</span>
+                    {% else %}
+                    <span>{{ patient.smoking }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ patient.last_visit.split(' ')[0] if patient.last_visit else '-' }}</td>
+                <td>
+                    <div class="action-cell">
+                        <button class="action-btn" onclick="toggleActionsMenu(event, '{{ patient.patient_id }}')" title="Actions">
+                            <i data-lucide="more-vertical" style="width: 16px; height: 16px;"></i>
+                        </button>
+                        <div class="actions-dropdown" id="dropdown-{{ patient.patient_id }}">
+                            <a href="/patient/profile/{{ patient.profile_ref_id }}" class="dropdown-item" onclick="event.stopPropagation();">
+                                <i data-lucide="history"></i> History
+                            </a>
+                            <a href="/patient/edit/{{ patient.patient_id }}" class="dropdown-item" onclick="event.stopPropagation();">
+                                <i data-lucide="edit-3"></i> Edit
+                            </a>
+                            <button class="dropdown-item btn-delete" onclick="confirmDelete(event, '{{ patient.patient_id }}', '{{ patient.name }}')">
+                                <i data-lucide="trash-2" style="color: var(--red);"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="9" style="text-align: center; padding: 48px; color: var(--text-muted);">
+                    <i data-lucide="users" style="width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.5;"></i>
+                    <p>No patient records found. Start by uploading a new scan.</p>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- DELETE CONFIRMATION MODAL -->
+<div id="delete-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.65);backdrop-filter:blur(6px);align-items:center;justify-content:center;" class="no-print">
+  <div style="background:linear-gradient(145deg,#111827,#0d1525);border:1px solid rgba(239,68,68,0.3);border-radius:20px;padding:36px 40px;width:400px;max-width:90vw;text-align:center;box-shadow:0 25px 80px rgba(0,0,0,0.7);animation: modalSlideIn 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;">
+    <div style="width:64px;height:64px;border-radius:50%;background:rgba(239,68,68,0.12);border:2px solid rgba(239,68,68,0.4);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;color:#ef4444;">
+      <i data-lucide="trash-2" style="width: 28px; height: 28px;"></i>
+    </div>
+    <div style="font-size:20px;font-weight:700;color:#f0f4ff;margin-bottom:10px;font-family:var(--font-sans);">Delete Patient Scan?</div>
+    <div style="font-size:13px;color:#94a3b8;margin-bottom:32px;line-height:1.7;font-family:var(--font-sans);">
+      Are you sure you want to permanently delete record <strong id="delete-patient-id" style="color:#f87171;font-family:var(--font-mono);font-size:12px;">PAT-XXXX</strong> for patient <strong id="delete-patient-name" style="color:#ffffff;text-transform:capitalize;">Name</strong>?<br>This action cannot be undone.
+    </div>
+    <div style="display:flex;gap:12px;justify-content:center;">
+      <button onclick="closeDeleteModal()" style="flex:1;padding:12px 0;border-radius:10px;border:1px solid rgba(59,130,246,0.35);background:rgba(37,99,235,0.1);color:#93c5fd;font-size:14px;font-weight:500;font-family:var(--font-sans);cursor:pointer;transition:all 0.2s;"
+        onmouseover="this.style.background='rgba(37, 99, 235, 0.22)'" onmouseout="this.style.background='rgba(37, 99, 235, 0.1)'">Cancel</button>
+      <button id="confirm-delete-btn" style="flex:1;padding:12px 0;border-radius:10px;border:none;background:linear-gradient(135deg,#ef4444,#dc2626);color:white;font-size:14px;font-weight:600;font-family:var(--font-sans);cursor:pointer;transition:all 0.2s;"
+        onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Yes, Delete</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Redirection on double-clicking a row to the scan report
+        const tableBody = document.querySelector('#patientTable tbody');
+        if (tableBody) {
+            tableBody.addEventListener('dblclick', function(e) {
+                const row = e.target.closest('tr');
+                if (row && row.dataset.id) {
+                    window.location.href = '/result/' + row.dataset.id;
+                }
+            });
+        }
+    });
+
+    // ── TABLE FILTERING ──
+    function filterTable() {
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        const resFilt = document.getElementById('resultFilter').value;
+        const smokeFilt = document.getElementById('smokeFilter').value;
+        const rows = document.querySelectorAll('#patientTable tbody tr');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            // Skip "no records" row
+            if (row.cells.length === 1) return;
+
+            const name = row.querySelector('.patient-name').textContent.toLowerCase();
+            const pid = row.querySelector('.pid').textContent.toLowerCase();
+            const resultBadge = row.querySelector('.result-badge');
+            const result = resultBadge ? resultBadge.textContent : '';
+            const smokingSpan = row.querySelector('span[class*="smoking-"]') || row.cells[6].querySelector('span');
+            const smoking = smokingSpan ? smokingSpan.textContent : '';
+
+            let show = true;
+            if (search && !name.includes(search) && !pid.includes(search)) show = false;
+            if (resFilt && !result.includes(resFilt)) show = false;
+            if (smokeFilt && !smoking.includes(smokeFilt)) show = false;
+
+            if (show) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        // Dynamic update of visible patients count
+        const countBadge = document.getElementById('patients-count-badge');
+        if (countBadge) {
+            countBadge.textContent = visibleCount;
+        }
+    }
+
+    function clearFilters() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('resultFilter').value = '';
+        document.getElementById('smokeFilter').value = '';
+        filterTable();
+    }
+
+    let pendingDeleteId = null;
+
+    function confirmDelete(event, patientId, patientName) {
+        event.stopPropagation(); // Prevent row click redirection
+        
+        // Collapse any open kebab dropdowns
+        document.querySelectorAll('.actions-dropdown').forEach(dropdown => {
+            dropdown.classList.remove('show');
+        });
+
+        pendingDeleteId = patientId;
+        
+        // Populate identifiers in modal
+        document.getElementById('delete-patient-id').textContent = patientId;
+        document.getElementById('delete-patient-name').textContent = patientName;
+        
+        // Display custom modal
+        const modal = document.getElementById('delete-modal');
+        if (modal) {
+            modal.style.display = 'flex';
+        }
+    }
+
+    function closeDeleteModal() {
+        const modal = document.getElementById('delete-modal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+        pendingDeleteId = null;
+    }
+
+    // Initialize listeners for deletion modal controls
+    document.addEventListener('DOMContentLoaded', function() {
+        const confirmBtn = document.getElementById('confirm-delete-btn');
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', function() {
+                if (pendingDeleteId) {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '/patient/delete/' + pendingDeleteId;
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        }
+
+        const deleteModal = document.getElementById('delete-modal');
+        if (deleteModal) {
+            deleteModal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeDeleteModal();
+                }
+            });
+        }
+    });
+
+    function toggleActionsMenu(event, patientId) {
+        event.stopPropagation(); // Prevent row click redirection
+        
+        // Close all other dropdowns
+        document.querySelectorAll('.actions-dropdown').forEach(dropdown => {
+            if (dropdown.id !== 'dropdown-' + patientId) {
+                dropdown.classList.remove('show');
+            }
+        });
+        
+        const dropdown = document.getElementById('dropdown-' + patientId);
+        if (dropdown) {
+            dropdown.classList.toggle('show');
+        }
+    }
+
+    // Auto-close dropdowns on click outside
+    document.addEventListener('click', function(event) {
+        if (!event.target.closest('.action-cell')) {
+            document.querySelectorAll('.actions-dropdown').forEach(dropdown => {
+                dropdown.classList.remove('show');
+            });
+        }
+    });
+</script>
+{% endblock %}

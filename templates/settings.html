@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+
+{% block title %}DiagnosticAI — Settings{% endblock %}
+
+{% block extra_styles %}
+<style>
+  /* Page-specific settings styles */
+  /* TABS */
+  .tabs { display: flex; gap: 4px; background: rgba(10, 15, 36, 0.65); border: 1px solid var(--border); border-radius: 12px; padding: 4px; margin-bottom: 28px; width: fit-content; backdrop-filter: blur(8px); }
+  .tab { padding: 9px 20px; border-radius: 9px; font-size: 14px; font-weight: 500; cursor: pointer; color: var(--text-muted); border: none; background: transparent; font-family: var(--font-sans); transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
+  .tab:hover { color: var(--text-primary); }
+  .tab.active { background: var(--blue); color: white; box-shadow: 0 4px 14px rgba(37,99,235,0.4), 0 0 0 1px rgba(37,99,235,0.3); }
+
+  /* TAB PANELS */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* CARDS: inherit from global style.css, override page-specific margins/spacing only */
+  .card { margin-bottom: 24px; }
+  .card-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+  .card-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; }
+  .divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+  /* FORM Layout & Overrides */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .form-group { display: flex; flex-direction: column; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-label { font-size: 10px; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+  .form-input { padding: 11px 14px; background: rgba(10, 15, 30, 0.65); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-family: var(--font-sans); font-size: 13.5px; outline: none; transition: border-color 0.2s, box-shadow 0.2s; width: 100%; }
+  .form-input:focus { border-color: var(--blue-bright); box-shadow: 0 0 0 3px rgba(59,130,246,0.12); }
+  .form-input::placeholder { color: var(--text-muted); }
+  .form-input:disabled { opacity: 0.5; cursor: not-allowed; }
+  select.form-input option { background: var(--navy-mid); }
+
+  /* ALERTS */
+  .alert { padding: 12px 16px; border-radius: 10px; font-size: 13.5px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+  .alert-success { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); color: #34d399; }
+  .alert-error   { background: rgba(239,68,68,0.08);  border: 1px solid rgba(239,68,68,0.25);  color: #f87171; }
+
+  /* AVATAR */
+  .avatar-section { display: flex; align-items: center; gap: 20px; margin-bottom: 24px; }
+  .avatar-big { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, var(--blue), var(--cyan)); display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; color: white; flex-shrink: 0; border: 3px solid rgba(37,99,235,0.4); box-shadow: 0 0 16px rgba(37,99,235,0.3); }
+  .avatar-info { font-size: 13px; color: var(--text-muted); line-height: 1.8; }
+  .avatar-name { font-size: 18px; font-weight: 600; color: var(--text-primary); }
+
+
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.3); border-radius: 3px; }
+</style>
+{% endblock %}
+
+{% block content %}
+  <div class="topbar">
+    <div>
+      <h1 class="page-title">Settings</h1>
+      <p class="page-desc">Manage your account and preferences</p>
+    </div>
+  </div>
+
+  <!-- TABS — Notifications tab removed -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('profile', this)">
+      <i data-lucide="user" style="width: 16px; height: 16px;"></i> Profile
+    </button>
+    <button class="tab"        onclick="switchTab('password', this)">
+      <i data-lucide="lock" style="width: 16px; height: 16px;"></i> Password
+    </button>
+  </div>
+
+  <!-- ══ TAB: PROFILE ══ -->
+  <div class="tab-panel active" id="tab-profile">
+    <div class="card">
+      <div class="avatar-section">
+        <div class="avatar-big">{{ doctor_name[:2].upper() }}</div>
+        <div>
+          <div class="avatar-name">Dr. {{ doctor_name }}</div>
+          <div class="avatar-info">
+            {{ profile['specialization'] if profile else 'Radiologist' }}<br>
+            {{ profile['hospital'] if profile else '—' }}<br>
+            {{ doctor }}
+          </div>
+        </div>
+      </div>
+
+      {% if success == 'profile' %}
+      <div class="alert alert-success">
+        <i data-lucide="check-circle" style="width: 16px; height: 16px; color: #34d399;"></i> Profile updated successfully!
+      </div>
+      {% endif %}
+
+      <div class="card-title">Personal Information</div>
+      <div class="card-sub">Update your profile details</div>
+
+      <form method="POST" action="/settings/profile">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input type="text" name="name" class="form-input"
+                   value="{{ profile['name'] if profile else doctor_name }}" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <input type="email" class="form-input" value="{{ doctor }}" disabled>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Hospital / Clinic</label>
+            <input type="text" name="hospital" class="form-input"
+                   value="{{ profile['hospital'] if profile else '' }}"
+                   placeholder="Hospital name">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Specialization</label>
+            <select name="specialization" class="form-input">
+              {% for spec in ['Radiology','Oncology','Pulmonology','General Medicine','Surgery','Other'] %}
+              <option value="{{ spec }}"
+                {{ 'selected' if profile and profile['specialization'] == spec else '' }}>
+                {{ spec }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone Number</label>
+            <input type="tel" name="phone" class="form-input"
+                   value="{{ profile['phone'] if profile else '' }}"
+                   placeholder="+91 XXXXX XXXXX">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Medical License No.</label>
+            <input type="text" class="form-input"
+                   value="{{ profile['license'] if profile else '' }}"
+                   disabled>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <i data-lucide="save" style="width: 16px; height: 16px; margin-right: 6px;"></i> Save Profile
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══ TAB: PASSWORD ══ -->
+  <div class="tab-panel" id="tab-password">
+    <div class="card">
+      <div class="card-title">Change Password</div>
+      <div class="card-sub">Make sure your new password is strong and unique</div>
+
+      {% if success == 'password' %}
+      <div class="alert alert-success">
+        <i data-lucide="check-circle" style="width: 16px; height: 16px; color: #34d399;"></i> Password changed successfully!
+      </div>
+      {% endif %}
+      {% if error == 'wrong_password' %}
+      <div class="alert alert-error">
+        <i data-lucide="alert-triangle" style="width: 16px; height: 16px; color: #f87171;"></i> Current password is incorrect.
+      </div>
+      {% endif %}
+      {% if error == 'password_mismatch' %}
+      <div class="alert alert-error">
+        <i data-lucide="alert-triangle" style="width: 16px; height: 16px; color: #f87171;"></i> New passwords do not match.
+      </div>
+      {% endif %}
+
+      <form method="POST" action="/settings/password" style="max-width:440px;">
+        <div class="form-group" style="margin-bottom:16px;">
+          <label class="form-label">Current Password</label>
+          <input type="password" name="current_password" class="form-input" placeholder="••••••••" required>
+        </div>
+        <div class="form-group" style="margin-bottom:16px;">
+          <label class="form-label">New Password</label>
+          <input type="password" name="new_password" id="new-pass" class="form-input"
+                 placeholder="Min. 8 characters" required onkeyup="checkStrength(this.value)">
+          <div style="height:4px;border-radius:2px;background:rgba(30,45,69,0.8);margin-top:8px;overflow:hidden;">
+            <div id="strength-bar" style="height:100%;width:0;border-radius:2px;transition:all 0.3s;"></div>
+          </div>
+          <div id="strength-text" style="font-size:11px;color:var(--text-muted);margin-top:4px;"></div>
+        </div>
+        <div class="form-group" style="margin-bottom:24px;">
+          <label class="form-label">Confirm New Password</label>
+          <input type="password" name="confirm_password" class="form-input" placeholder="Re-enter new password" required>
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <i data-lucide="key-round" style="width: 16px; height: 16px; margin-right: 6px;"></i> Update Password
+        </button>
+      </form>
+    </div>
+  </div>
+
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function switchTab(name, el) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  el.classList.add('active');
+}
+
+// Auto-switch to correct tab based on server response
+document.addEventListener('DOMContentLoaded', function() {
+  {% if success == 'password' or error in ['wrong_password', 'password_mismatch'] %}
+  var passwordTab = document.querySelector('[onclick*="password"]');
+  if (passwordTab) switchTab('password', passwordTab);
+  {% endif %}
+});
+
+// Password strength checks and form helper scripts
+function checkStrength(val) {
+  const bar  = document.getElementById('strength-bar');
+  const text = document.getElementById('strength-text');
+  let score  = 0;
+  if (val.length >= 8)          score++;
+  if (/[A-Z]/.test(val))        score++;
+  if (/[0-9]/.test(val))        score++;
+  if (/[^A-Za-z0-9]/.test(val)) score++;
+  const colors = ['#ef4444','#f59e0b','#3b82f6','#10b981'];
+  const labels = ['Weak','Fair','Good','Strong'];
+  const widths  = ['25%','50%','75%','100%'];
+  if (!val) { bar.style.width = '0'; text.textContent = ''; return; }
+  bar.style.width      = widths[score-1]  || '25%';
+  bar.style.background = colors[score-1] || '#ef4444';
+  text.textContent     = labels[score-1] || 'Weak';
+  text.style.color     = colors[score-1] || '#ef4444';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,741 @@
+{% extends "base.html" %}
+
+{% block title %}DiagnosticAI — Upload Scan{% endblock %}
+
+{% block extra_styles %}
+<style>
+  /* ── Page Header Action Button ── */
+  .page-title { font-size: 26px; font-weight: 600; margin-bottom: 4px; }
+  .page-desc  { font-size: 14px; color: var(--text-secondary); }
+
+  /* ── Wizard Card ── */
+  .wizard-card { width: 100%; background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  .prog-bar  { height: 3px; background: var(--navy-light); }
+  .prog-fill { height: 100%; background: linear-gradient(90deg, var(--blue-bright), var(--purple)); transition: width .4s ease; }
+
+  .card-hd {
+    padding: 20px 28px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 14px;
+    background: linear-gradient(135deg, rgba(17,24,39,0.9) 0%, rgba(30,45,69,0.4) 100%);
+  }
+  .hd-ico { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .ico-blue  { background: rgba(37,99,235,0.15);  border: 1px solid rgba(59,130,246,0.3); }
+  .ico-green { background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); }
+  .card-hd h2 { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+  .card-hd p  { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  .panel { display: none; padding: 28px; animation: slideIn .28s ease both; }
+  .panel.on { display: block; }
+  @keyframes slideIn { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:none} }
+
+  /* Grid layouts */
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  .row1 { margin-bottom: 20px; }
+
+  .hint { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  /* Radio & check buttons */
+  .rtg { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
+  .rb {
+    display: flex; align-items: center; gap: 7px; padding: 8px 14px;
+    background: rgba(30,45,69,0.5); border: 1px solid var(--navy-light);
+    border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500;
+    color: var(--text-secondary); transition: all .15s; user-select: none;
+  }
+  .rb input { accent-color: var(--blue-bright); }
+  .rb:has(input:checked) { border-color: var(--blue-bright); background: rgba(37,99,235,0.12); color: var(--blue-glow); }
+
+  .smoke-types { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+  .stype {
+    display: flex; align-items: center; gap: 6px; padding: 8px 16px;
+    background: rgba(30,45,69,0.5); border: 1px solid var(--navy-light);
+    border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 500;
+    color: var(--text-secondary); transition: all .15s; user-select: none;
+  }
+  .stype input { display: none; }
+  .stype:has(input:checked) { border-color: var(--amber); background: rgba(245,158,11,0.1); color: #fbbf24; }
+
+  #smoke-risk-banner {
+    margin-top: 12px; padding: 12px 16px; border-radius: 10px;
+    border: 1px solid; animation: fadeIn .25s ease;
+    display: flex; align-items: center; gap: 10px;
+  }
+  #smoke-risk-banner.hidden { display: none !important; }
+  #smoke-risk-banner.risk-low    { background: rgba(16,185,129,.05);  border-color: rgba(16,185,129,.2);  }
+  #smoke-risk-banner.risk-medium { background: rgba(245,158,11,.05);  border-color: rgba(245,158,11,.2);  }
+  #smoke-risk-banner.risk-high   { background: rgba(239,68,68,.05);   border-color: rgba(239,68,68,.2);  }
+  #smoke-risk-banner.risk-watch  { background: rgba(37,99,235,.05);   border-color: rgba(37,99,235,.2);   }
+  .srb-icon { font-size: 22px; flex-shrink: 0; }
+  .srb-main { font-size: 13px; font-weight: 600; }
+  .srb-sub  { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .srb-py   { margin-left: auto; font-family: var(--font-mono); font-size: 12px; font-weight: 700; flex-shrink: 0; }
+
+  #smoke-detail-box {
+    margin-top: 14px; padding: 18px; border-radius: 10px;
+    background: rgba(30,45,69,0.3); border: 1px solid rgba(245,158,11,0.15);
+    display: none;
+  }
+  #smoke-detail-box.on { display: block; }
+  .smoke-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  #quit-row { display: none; grid-template-columns: 1fr; gap: 14px; }
+  #quit-row.on { display: grid; }
+
+  .sym6 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 4px; }
+  .sc {
+    display: flex; align-items: center; gap: 7px; padding: 9px 10px;
+    background: rgba(30,45,69,0.5); border: 1px solid var(--navy-light);
+    border-radius: 8px; cursor: pointer; user-select: none; transition: all .15s;
+  }
+  .sc:hover { border-color: var(--blue-bright); }
+  .sc input { accent-color: var(--blue-bright); width: 14px; height: 14px; flex-shrink: 0; }
+  .sc span  { font-size: 12px; color: var(--text-secondary); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sc:has(input:checked) { border-color: var(--blue-bright); background: rgba(37,99,235,0.12); }
+  .sc:has(input:checked) span { color: var(--blue-glow); }
+
+  /* Step 2 scan elements */
+  .pat-bar {
+    display: flex; align-items: center; gap: 14px;
+    background: rgba(30,45,69,0.4); border: 1px solid var(--border);
+    border-radius: 10px; padding: 13px 18px; margin-bottom: 24px;
+  }
+  .pat-av {
+    width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--blue), var(--cyan));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px; font-weight: 700; color: #fff;
+  }
+  .pat-nm { font-size: 14px; font-weight: 600; }
+  .pat-mt { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+  .pat-ed { margin-left: auto; font-size: 12px; color: var(--blue-glow); background: none; border: none; cursor: pointer; font-family: inherit; font-weight: 500; text-decoration: underline; }
+  
+  .s2grid { display: grid; grid-template-columns: 320px 1fr; gap: 24px; align-items: start; }
+  .scan-stack { display: flex; flex-direction: column; gap: 10px; }
+  .scard {
+    background: rgba(30,45,69,0.5); border: 2px solid var(--navy-light);
+    border-radius: 10px; padding: 14px 16px;
+    cursor: pointer; transition: all .18s; user-select: none;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .scard:hover { border-color: var(--blue-bright); }
+  .scard.sel { border-color: var(--blue-bright); background: rgba(37,99,235,0.12); box-shadow: 0 0 14px rgba(59,130,246,.1); }
+  .scard input { display: none; }
+  .sc-ico { font-size: 26px; flex-shrink: 0; }
+  .sc-nm  { font-size: 13.5px; font-weight: 600; color: var(--text-primary); }
+  .sc-ds  { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+  .sc-dot { margin-left: auto; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--navy-light); flex-shrink: 0; transition: all .18s; }
+  .scard.sel .sc-dot { background: var(--blue-bright); border-color: var(--blue-bright); }
+
+  /* Drag & Drop uploader area */
+  .drop {
+    border: 2px dashed var(--border); border-radius: 12px; min-height: 260px;
+    text-align: center; cursor: pointer; background: rgba(30,45,69,0.25); transition: all .18s;
+    position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 28px;
+  }
+  .drop:hover, .drop.over { border-color: var(--blue-bright); background: rgba(37,99,235,0.06); }
+  .drop input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .d-ico { font-size: 44px; margin-bottom: 14px; transition: transform 0.2s; }
+  .drop:hover .d-ico { transform: scale(1.08); }
+  .d-ttl { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+  .d-sub { font-size: 13px; color: var(--text-muted); }
+  .d-sub span { color: var(--blue-glow); font-weight: 500; }
+  .d-fmts { display: flex; justify-content: center; gap: 7px; margin-top: 14px; flex-wrap: wrap; }
+  .fmt { background: var(--navy-mid); border: 1px solid var(--navy-light); border-radius: 5px; padding: 2px 10px; font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
+  .drop.has-file { display: none; }
+  
+  .fprev { display: none; border-radius: 12px; overflow: hidden; border: 2px solid rgba(16,185,129,0.4); position: relative; }
+  .fprev.on { display: block; }
+  .fprev-img { width: 100%; display: block; object-fit: contain; max-height: 360px; background: #060b18; }
+  .fprev-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: rgba(16,185,129,0.08); border-top: 1px solid rgba(16,185,129,0.2); }
+  .fp-nm { font-size: 13px; font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #34d399; }
+  .fp-sz { font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+  .fp-change { padding: 5px 12px; background: none; border: 1px solid var(--border); border-radius: 7px; color: var(--text-secondary); font-size: 12px; cursor: pointer; font-family: inherit; flex-shrink: 0; transition: all .15s; }
+  .fp-change:hover { border-color: var(--blue-bright); color: var(--text-primary); }
+
+  /* Modal Windows */
+  .diag-modal-bg { display: none; position: fixed; inset: 0; z-index: 500; background: rgba(6,10,20,0.7); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+  .diag-modal-bg.open { display: flex; }
+  .diag-modal { background: linear-gradient(160deg,#0f1a2e 0%,#0a1220 100%); border: 1px solid rgba(59,130,246,0.25); border-radius: 20px; padding: 40px 44px; width: 480px; max-width: 90vw; text-align: center; box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(59,130,246,0.1); animation: modal-in .25s ease; }
+  @keyframes modal-in { from{transform:scale(0.92);opacity:0} to{transform:scale(1);opacity:1} }
+  .modal-scan-thumb { width: 120px; height: 90px; border-radius: 10px; object-fit: cover; border: 2px solid rgba(59,130,246,0.3); margin: 0 auto 18px; display: block; filter: brightness(0.85); }
+  .modal-title { font-size: 20px; font-weight: 600; color: #f0f4ff; margin-bottom: 6px; }
+  .modal-sub { font-size: 13px; color: #64748b; margin-bottom: 28px; line-height: 1.5; }
+  .modal-run-btn { width: 100%; padding: 16px; background: linear-gradient(135deg,#10b981,#059669); color: #fff; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; font-family: inherit; cursor: pointer; letter-spacing: .01em; box-shadow: 0 6px 24px rgba(16,185,129,0.35); transition: all .2s; margin-bottom: 10px; }
+  .modal-run-btn:hover { background: linear-gradient(135deg,#059669,#047857); transform: translateY(-1px); }
+  .modal-cancel { font-size: 12px; color: #475569; background: none; border: none; cursor: pointer; font-family: inherit; padding: 4px; text-decoration: underline; }
+  .modal-cancel:hover { color: #94a3b8; }
+  .modal-info { margin-top: 16px; padding: 10px 14px; background: rgba(37,99,235,0.05); border: 1px solid rgba(59,130,246,0.1); border-radius: 8px; font-size: 12px; color: #475569; }
+
+  /* Scan Progress Screen Overlay */
+  .scan-overlay { display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(8,12,26,0.9); flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+  .scan-overlay.active { display: flex; }
+  .scanner-frame { position: relative; width: 260px; height: 260px; margin-bottom: 28px; }
+  .scanner-img { width: 100%; height: 100%; border-radius: 16px; object-fit: cover; opacity: 0.55; filter: grayscale(0.4) brightness(0.9); }
+  .scanner-sweep { position: absolute; left: 0; right: 0; top: 0; height: 3px; background: linear-gradient(90deg,transparent 0%,rgba(6,182,212,0.6) 20%,#06b6d4 50%,rgba(6,182,212,0.6) 80%,transparent 100%); box-shadow: 0 0 16px #06b6d4, 0 0 32px rgba(6,182,212,0.3); animation: sweep 2s linear infinite; border-radius: 2px; z-index: 2; }
+  @keyframes sweep { 0%{top:0%;opacity:0} 5%{opacity:1} 95%{opacity:1} 100%{top:100%;opacity:0} }
+  .sonar-ring { position: absolute; inset: 0; border-radius: 16px; border: 1.5px solid rgba(6,182,212,0.5); animation: sonar 2.4s ease-out infinite; z-index: 3; }
+  .sonar-ring:nth-child(2) { animation-delay: .8s; }
+  .sonar-ring:nth-child(3) { animation-delay: 1.6s; }
+  @keyframes sonar { 0%{transform:scale(1);opacity:0.7} 100%{transform:scale(1.25);opacity:0} }
+  .sc-bracket { position: absolute; width: 22px; height: 22px; border-color: #06b6d4; border-style: solid; z-index: 4; }
+  .scb-tl { top: 0; left: 0;   border-width: 2px 0 0 2px; border-radius: 4px 0 0 0; }
+  .scb-tr { top: 0; right: 0;  border-width: 2px 2px 0 0; border-radius: 0 4px 0 0; }
+  .scb-bl { bottom: 0; left: 0;  border-width: 0 0 2px 2px; border-radius: 0 0 0 4px; }
+  .scb-br { bottom: 0; right: 0; border-width: 0 2px 2px 0; border-radius: 0 0 4px 0; }
+  .scanner-dot { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 10px; height: 10px; border-radius: 50%; background: #06b6d4; box-shadow: 0 0 12px #06b6d4; z-index: 4; animation: dot-throb 1.2s ease-in-out infinite; }
+  @keyframes dot-throb { 0%,100%{transform:translate(-50%,-50%) scale(1);opacity:1} 50%{transform:translate(-50%,-50%) scale(1.6);opacity:.5} }
+  
+  .ov-title { font-size: 17px; font-weight: 600; color: #e2e8f0; margin-bottom: 6px; letter-spacing: .01em; }
+  .ov-sub { font-size: 13px; color: #64748b; margin-bottom: 20px; text-align: center; }
+  .ov-prog-wrap { width: 260px; height: 3px; background: rgba(30,45,69,0.9); border-radius: 2px; overflow: hidden; margin-bottom: 10px; }
+  .ov-prog-bar { height: 100%; background: linear-gradient(90deg,#3b82f6,#06b6d4); border-radius: 2px; width: 0%; animation: ov-fill 5s ease-in-out forwards; }
+  @keyframes ov-fill { 0%{width:0%} 25%{width:40%} 55%{width:68%} 80%{width:84%} 100%{width:93%} }
+  .ov-status { font-size: 12px; color: #475569; font-family: inherit; transition: opacity .3s; }
+  
+  .rwarn { display: none; margin-top: 10px; padding: 10px 14px; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); border-radius: 8px; font-size: 12px; color: var(--amber); }
+  .rwarn.on { display: flex; gap: 7px; align-items: flex-start; }
+  
+  .tips { background: rgba(37,99,235,0.04); border: 1px solid rgba(59,130,246,0.12); border-radius: 9px; padding: 13px 16px; margin-top: 14px; }
+  .tips-t { font-size: 11.5px; font-weight: 600; color: var(--blue-glow); margin-bottom: 7px; }
+  .tips ul { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+  .tips li { font-size: 11.5px; color: var(--text-secondary); padding-left: 14px; position: relative; }
+  .tips li::before { content: "→"; position: absolute; left: 0; color: var(--blue-bright); }
+  
+  .brow { display: flex; justify-content: space-between; align-items: center; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); }
+  .flash { padding: 12px 16px; border-radius: 9px; margin-bottom: 18px; font-size: 13px; display: flex; align-items: center; gap: 10px; }
+  .flash.warning { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); color: var(--amber); }
+  .flash.error   { background: rgba(239,68,68,0.1);  border: 1px solid rgba(239,68,68,0.3);  color: var(--red); }
+</style>
+{% endblock %}
+
+{% block content %}
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}
+      <div class="flash {{ cat }}">⚠️ {{ msg }}</div>
+    {% endfor %}{% endif %}
+  {% endwith %}
+
+  <div style="margin-bottom:24px;">
+    <h1 class="page-title">🫁 New Scan Analysis</h1>
+    <p class="page-desc">Register patient details, then upload the CT scan for AI-powered diagnosis</p>
+  </div>
+
+  <div class="stepper">
+    <div class="snum active" id="sn1">1</div>
+    <div class="slbl active" id="sl1">Patient Details</div>
+    <div class="sline" id="sline"></div>
+    <div class="snum" id="sn2">2</div>
+    <div class="slbl" id="sl2">Upload Scan</div>
+  </div>
+
+  <div class="wizard-card">
+    <div class="prog-bar"><div class="prog-fill" id="pbar" style="width:50%"></div></div>
+
+    <form method="POST" enctype="multipart/form-data" id="wform" action="{{ url_for('upload') }}">
+
+      <!-- Hidden computed fields submitted to backend -->
+      <input type="hidden" name="patient_type"     id="h-patient-type"    value="new"/>
+      <input type="hidden" name="profile_ref_id"   id="h-profile-ref-id-form" value=""/>
+      <input type="hidden" name="pack_years"      id="h-pack-years"      value="0"/>
+      <input type="hidden" name="smoking_type"    id="h-smoking-type"    value=""/>
+      <input type="hidden" name="amount_per_day"  id="h-amount-per-day"  value="0"/>
+      <input type="hidden" name="years_smoked"    id="h-years-smoked"    value="0"/>
+      <input type="hidden" name="years_since_quit" id="h-years-since-quit" value="0"/>
+
+      <!-- STEP 1 -->
+      <div id="p1" class="panel on">
+        <div class="card-hd">
+          <div class="hd-ico ico-blue">👤</div>
+          <div><h2>Patient Information</h2><p>Fill in all patient details before uploading the scan</p></div>
+        </div>
+
+
+
+        <div class="row3" style="margin-top:24px;">
+          <div class="fld" id="f-name">
+            <label>Full Name <span class="req">*</span></label>
+            <input type="text" name="name" id="i-name" placeholder="e.g. Ramesh Kumar"/>
+            <span class="emsg">Patient name is required</span>
+          </div>
+          <div class="fld" id="f-age">
+            <label>Age <span class="req">*</span></label>
+            <input type="number" name="age" id="i-age" placeholder="e.g. 54" min="1" max="120"/>
+            <span class="emsg">Enter valid age (1–120)</span>
+          </div>
+          <div class="fld">
+            <label>Gender <span class="req">*</span></label>
+            <div class="rtg">
+              <label class="rb"><input type="radio" name="gender" value="Male" required/> ♂ Male</label>
+              <label class="rb"><input type="radio" name="gender" value="Female"/> ♀ Female</label>
+              <label class="rb"><input type="radio" name="gender" value="Other"/> ◇ Other</label>
+            </div>
+            <span id="gender-err" style="display:none;font-size:11px;color:var(--red);margin-top:4px;">Please select a gender</span>
+          </div>
+        </div>
+
+        <div class="row2">
+          <div class="fld" id="f-phone">
+            <label>Phone Number <span class="req">*</span></label>
+            <input type="tel" name="phone" id="i-phone" placeholder="e.g. +91 9876543210"/>
+            <span class="emsg">Phone number is required</span>
+          </div>
+          <div class="fld">
+            <label>Family History of Cancer <span class="req">*</span></label>
+            <div class="rtg">
+              <label class="rb"><input type="radio" name="family_history" value="Yes" required/> <span style="color:#34d399;">✓</span> Yes</label>
+              <label class="rb"><input type="radio" name="family_history" value="No"/> <span style="color:#f87171;">✕</span> No</label>
+              <label class="rb"><input type="radio" name="family_history" value="Unknown"/> ? Unknown</label>
+            </div>
+            <span id="family-history-err" style="display:none;font-size:11px;color:var(--red);margin-top:4px;">Please select family history</span>
+          </div>
+        </div>
+
+        <!-- SMOKING SECTION -->
+        <div class="row1" id="f-smoke-section">
+          <div class="fld" id="f-smoke">
+            <label>Smoking Status <span class="req">*</span></label>
+            <select name="smoking" id="i-smoke">
+              <option value="" disabled selected>— Select —</option>
+              <option value="Never Smoked">🚭 Never Smoked</option>
+              <option value="Current Smoker">🚬 Current Smoker</option>
+              <option value="Former Smoker">⏹ Former Smoker (quit)</option>
+              <option value="Passive Smoker">💨 Passive Smoker (secondhand)</option>
+            </select>
+            <span class="emsg">Please select smoking status</span>
+          </div>
+
+          <!-- Smoking detail box — shown for Current/Former only -->
+          <div id="smoke-detail-box">
+            <div style="margin-bottom:10px;">
+              <div style="font-size:11px;font-weight:600;color:var(--text-secondary);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;">
+                What do they smoke?
+              </div>
+              <div class="smoke-types">
+                <label class="stype"><input type="radio" name="_smoke_type_ui" value="Cigarette" onchange="updateSmokeType(this)"/> 🚬 Cigarette</label>
+                <label class="stype"><input type="radio" name="_smoke_type_ui" value="Beedi"     onchange="updateSmokeType(this)"/> 🌿 Beedi</label>
+                <label class="stype"><input type="radio" name="_smoke_type_ui" value="Both"      onchange="updateSmokeType(this)"/> 🚬+🌿 Both</label>
+                <label class="stype"><input type="radio" name="_smoke_type_ui" value="Other"     onchange="updateSmokeType(this)"/> ○ Other</label>
+              </div>
+            </div>
+
+            <div class="smoke-detail-grid">
+              <div class="fld">
+                <label>Sticks / day</label>
+                <input type="number" id="i-amount" placeholder="e.g. 10" min="1" max="200" oninput="recalcRisk()"/>
+                <span class="hint">How many per day on average</span>
+              </div>
+              <div class="fld">
+                <label>Years smoked</label>
+                <input type="number" id="i-years" placeholder="e.g. 20" min="1" max="80" oninput="recalcRisk()"/>
+                <span class="hint">Total years of smoking</span>
+              </div>
+              <div class="fld" id="quit-field" style="display:none;">
+                <label>Years since quit</label>
+                <input type="number" id="i-quit" placeholder="e.g. 5" min="0" max="80" oninput="recalcRisk()"/>
+                <span class="hint">How many years ago they quit</span>
+              </div>
+            </div>
+
+            <!-- Live risk banner -->
+            <div id="smoke-risk-banner" class="hidden">
+              <span class="srb-icon" id="srb-icon">🚬</span>
+              <div>
+                <div class="srb-main" id="srb-main">—</div>
+                <div class="srb-sub"  id="srb-sub">Enter sticks/day and years smoked to see risk</div>
+              </div>
+              <div class="srb-py" id="srb-py" style="color:var(--text-muted);">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row1">
+          <div class="fld">
+            <label>Symptoms <small style="color:var(--text-muted);font-weight:400;text-transform:none;">(select all that apply)</small></label>
+            <div class="sym6">
+              <label class="sc"><input type="checkbox" name="symptoms" value="Persistent Cough"/><span>〰 Persistent Cough</span></label>
+              <label class="sc"><input type="checkbox" name="symptoms" value="Chest Pain"/><span>♥ Chest Pain</span></label>
+              <label class="sc"><input type="checkbox" name="symptoms" value="Shortness of Breath"/><span>∿ Breathlessness</span></label>
+              <label class="sc"><input type="checkbox" name="symptoms" value="Coughing Blood"/><span>+ Coughing Blood</span></label>
+              <label class="sc"><input type="checkbox" name="symptoms" value="Weight Loss"/><span>↓ Weight Loss</span></label>
+              <label class="sc"><input type="checkbox" name="symptoms" value="Fatigue"/><span>~ Fatigue</span></label>
+            </div>
+          </div>
+        </div>
+
+        <div class="row1">
+          <div class="fld">
+            <label>Clinical Notes <small style="color:var(--text-muted);font-weight:400;text-transform:none;">(optional)</small></label>
+            <textarea name="notes" placeholder="Additional observations, relevant history, clinical remarks..."></textarea>
+          </div>
+        </div>
+
+        <div class="brow">
+          <span style="font-size:12px;color:var(--text-muted);"><span style="color:var(--red);">*</span> Required fields</span>
+          <button type="button" class="btn btn-primary" onclick="toStep2()">Next: Upload Scan →</button>
+        </div>
+      </div>
+
+      <!-- STEP 2 -->
+      <div id="p2" class="panel">
+        <div class="card-hd">
+          <div class="hd-ico ico-green">🔬</div>
+          <div><h2>Upload CT Scan</h2><p>Select scan type and upload the patient's imaging file</p></div>
+        </div>
+
+        <div class="pat-bar" style="margin-top:24px;">
+          <div class="pat-av" id="pav">?</div>
+          <div>
+            <div class="pat-nm" id="pnm">—</div>
+            <div class="pat-mt" id="pmt">—</div>
+          </div>
+          <button type="button" class="pat-ed" onclick="toStep1()">← Edit Details</button>
+        </div>
+
+        <div class="s2grid">
+          <div>
+            <input type="hidden" name="scan_type" value="CT Scan"/>
+            <div class="tips" style="margin-top:0;">
+              <div class="tips-t">📋 Scan Quality Guidelines</div>
+              <ul>
+                <li>Minimum 224×224px for accurate AI analysis</li>
+                <li>Use LDCT images for best results</li>
+                <li>Full lung field must be visible</li>
+                <li>Avoid compressed or watermarked images</li>
+              </ul>
+            </div>
+          </div>
+          <div>
+            <div class="fld" style="margin-bottom:10px;"><label>Scan Image <span class="req">*</span></label></div>
+            <div class="drop" id="dz">
+              <input type="file" name="file" id="fi" accept="image/*,.jpg,.jpeg,.png,.bmp,.tiff" capture="environment" onchange="onFile(this)"/>
+              <div class="d-ico">📂</div>
+              <div class="d-ttl">Drop your scan image here</div>
+              <div class="d-sub">or <span>click to browse</span> files from your computer</div>
+              <div class="d-fmts">
+                <span class="fmt">.JPG</span><span class="fmt">.PNG</span>
+                <span class="fmt">.BMP</span><span class="fmt">.TIFF</span>
+              </div>
+            </div>
+            <div class="fprev" id="fp">
+              <img class="fprev-img" src="" id="fpimg" alt="Scan preview"/>
+              <div class="fprev-bar">
+                <span class="fp-nm" id="fpnm">—</span>
+                <span class="fp-sz" id="fpsz">—</span>
+                <button type="button" class="fp-change" onclick="changeFile()">↺ Change</button>
+              </div>
+            </div>
+            <div class="rwarn" id="rw">⚠ <span id="rwt">Low resolution detected.</span></div>
+          </div>
+        </div>
+
+        <div class="brow">
+          <button type="button" class="btn btn-ghost" onclick="toStep1()">← Back</button>
+          <span style="font-size:12px;color:var(--text-muted);">Upload a scan image to continue</span>
+        </div>
+      </div>
+
+    </form>
+  </div>
+
+  <!-- DIAGNOSIS MODAL -->
+  <div class="diag-modal-bg" id="diag-modal">
+    <div class="diag-modal">
+      <img class="modal-scan-thumb" id="modal-thumb" src="" alt="Scan"/>
+      <div class="modal-title">Ready to Run Diagnosis</div>
+      <div class="modal-sub" id="modal-sub">CT Scan · Ready for AI analysis</div>
+      <button class="modal-run-btn" onclick="submitDiagnosis()">🔬 Run Diagnosis</button><br>
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <div class="modal-info">🤖 MobileNetV2 · 99.4% accuracy · lung_cancer_model.h5</div>
+    </div>
+  </div>
+
+  <!-- SCAN OVERLAY -->
+  <div class="scan-overlay" id="scan-overlay">
+    <div class="scanner-frame">
+      <img class="scanner-img" id="ov-img" src="" alt="Scan"/>
+      <div class="scanner-sweep"></div>
+      <div class="sonar-ring"></div><div class="sonar-ring"></div><div class="sonar-ring"></div>
+      <div class="sc-bracket scb-tl"></div><div class="sc-bracket scb-tr"></div>
+      <div class="sc-bracket scb-bl"></div><div class="sc-bracket scb-br"></div>
+      <div class="scanner-dot"></div>
+    </div>
+    <div class="ov-title">Analyzing scan...</div>
+    <div class="ov-sub">AI is reviewing the imaging · Please wait</div>
+    <div class="ov-prog-wrap"><div class="ov-prog-bar" id="ov-pbar"></div></div>
+    <div class="ov-status" id="ov-status">Loading model...</div>
+  </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  initSmoking();
+  document.getElementById('diag-modal').addEventListener('click', function(e) { if(e.target===this) closeModal(); });
+  
+  var dz = document.getElementById('dz');
+  if (dz) {
+    dz.addEventListener('dragover',  function(e) { e.preventDefault(); dz.classList.add('over'); });
+    dz.addEventListener('dragleave', function()  { dz.classList.remove('over'); });
+    dz.addEventListener('drop', function(e) {
+      e.preventDefault(); dz.classList.remove('over');
+      var f = e.dataTransfer.files[0];
+      if (f) { var inp=document.getElementById('fi'); var dt=new DataTransfer(); dt.items.add(f); inp.files=dt.files; onFile(inp); }
+    });
+  }
+
+  document.querySelectorAll('input, select, textarea').forEach(function(el) {
+    el.addEventListener('input', function() { var f=el.closest('.fld'); if(f) f.classList.remove('err'); });
+  });
+
+
+});
+
+// ══════════════════════════════════════════════
+//  SMOKING LOGIC
+// ══════════════════════════════════════════════
+var smokeEl    = null;
+var detailBox  = null;
+var quitField  = null;
+var riskBanner = null;
+var currentSmokeType = '';
+var MULTIPLIERS = { Cigarette: 1.0, Beedi: 1.5, Both: 1.25, Other: 1.0 };
+
+function initSmoking() {
+  smokeEl    = document.getElementById('i-smoke');
+  detailBox  = document.getElementById('smoke-detail-box');
+  quitField  = document.getElementById('quit-field');
+  riskBanner = document.getElementById('smoke-risk-banner');
+  if (!smokeEl) return;
+  smokeEl.addEventListener('change', onSmokeChange);
+}
+
+function onSmokeChange() {
+  var v = smokeEl.value;
+  var showDetail = (v === 'Current Smoker' || v === 'Former Smoker');
+  detailBox.classList.toggle('on', showDetail);
+  quitField.style.display = (v === 'Former Smoker') ? 'flex' : 'none';
+  if (!showDetail) {
+    document.querySelectorAll('input[name="_smoke_type_ui"]').forEach(function(r){ r.checked = false; });
+    currentSmokeType = '';
+    document.getElementById('h-smoking-type').value = '';
+    hideBanner();
+    resetHiddenFields();
+  }
+  recalcRisk();
+}
+
+function updateSmokeType(radio) {
+  currentSmokeType = radio.value;
+  document.getElementById('h-smoking-type').value = currentSmokeType;
+  recalcRisk();
+}
+
+function hideBanner() {
+  if (riskBanner) riskBanner.classList.add('hidden');
+}
+
+function resetHiddenFields() {
+  document.getElementById('h-pack-years').value       = '0';
+  document.getElementById('h-amount-per-day').value   = '0';
+  document.getElementById('h-years-smoked').value     = '0';
+  document.getElementById('h-years-since-quit').value = '0';
+}
+
+function recalcRisk() {
+  if (!smokeEl || !riskBanner) return;
+  var smokeVal  = smokeEl.value;
+  var amount    = parseFloat(document.getElementById('i-amount').value) || 0;
+  var years     = parseFloat(document.getElementById('i-years').value)  || 0;
+  var quitYears = parseFloat(document.getElementById('i-quit').value)   || 0;
+
+  document.getElementById('h-amount-per-day').value   = amount;
+  document.getElementById('h-years-smoked').value     = years;
+  document.getElementById('h-years-since-quit').value = quitYears;
+
+  if (smokeVal !== 'Current Smoker' && smokeVal !== 'Former Smoker') { hideBanner(); return; }
+  if (!currentSmokeType) { hideBanner(); return; }
+
+  if (amount <= 0 || years <= 0) {
+    riskBanner.className = 'risk-watch';
+    document.getElementById('srb-icon').textContent = 'ℹ️';
+    document.getElementById('srb-main').textContent = 'Enter sticks/day and years to see risk level';
+    document.getElementById('srb-sub').textContent  = currentSmokeType + ' selected';
+    document.getElementById('srb-py').textContent   = '— pack-yrs';
+    document.getElementById('h-pack-years').value   = '0';
+    return;
+  }
+
+  var multiplier    = MULTIPLIERS[currentSmokeType] || 1.0;
+  var packYears     = (amount * multiplier / 20.0) * years;
+  document.getElementById('h-pack-years').value = packYears.toFixed(1);
+
+  var typeLabel = currentSmokeType === 'Beedi' ? 'beedi (1.5× toxicity)' : currentSmokeType.toLowerCase();
+  var riskClass, icon, mainText, subText, pyColor;
+
+  if (packYears >= 30) {
+    riskClass='risk-high'; icon='🔴'; mainText='HIGH RISK — Heavy smoker'; pyColor='#f87171';
+  } else if (packYears >= 20) {
+    riskClass='risk-high'; icon='⚠️'; mainText='HIGH RISK — Annual LDCT screening required (USPSTF ≥20 pack-years)'; pyColor='#f97316';
+  } else if (packYears >= 10) {
+    riskClass='risk-medium'; icon='🟡'; mainText='MODERATE RISK — Significant exposure, monitor closely'; pyColor='#fbbf24';
+  } else {
+    riskClass='risk-watch'; icon='📋'; mainText='LOW-MODERATE — Light exposure, note and monitor'; pyColor='#93c5fd';
+  }
+
+  subText = amount + ' ' + typeLabel + '/day × ' + years + ' years';
+  if (smokeVal === 'Former Smoker' && quitYears > 0) {
+    subText += ' · Quit ' + quitYears + ' year' + (quitYears !== 1 ? 's' : '') + ' ago';
+    if (quitYears >= 15) subText += ' (risk significantly reduced)';
+    else if (quitYears >= 5) subText += ' (risk partially reduced)';
+    else subText += ' (recent quit — still elevated risk)';
+  }
+
+  riskBanner.className = riskClass;
+  document.getElementById('srb-icon').textContent = icon;
+  document.getElementById('srb-main').textContent = mainText;
+  document.getElementById('srb-sub').textContent  = subText;
+  document.getElementById('srb-py').style.color   = pyColor;
+  document.getElementById('srb-py').textContent   = packYears.toFixed(1) + ' pack-yrs';
+  riskBanner.classList.remove('hidden');
+}
+
+// ── Step navigation ──
+function toStep2() {
+  if (!valStep1()) return;
+  var name  = document.getElementById('i-name').value.trim();
+  var age   = document.getElementById('i-age').value;
+  var smoke = document.getElementById('i-smoke').value;
+  var gen   = (document.querySelector('input[name="gender"]:checked') || {}).value || '';
+  var syms  = Array.from(document.querySelectorAll('input[name="symptoms"]:checked')).map(function(c){ return c.value; });
+  var py    = parseFloat(document.getElementById('h-pack-years').value) || 0;
+  var amt   = parseFloat(document.getElementById('h-amount-per-day').value) || 0;
+  var yrs   = parseFloat(document.getElementById('h-years-smoked').value) || 0;
+
+  document.getElementById('pav').textContent = name.charAt(0).toUpperCase();
+  document.getElementById('pnm').textContent = name;
+
+  var meta = 'Age ' + age + ' · ' + gen + ' · ' + smoke;
+  if ((smoke === 'Current Smoker' || smoke === 'Former Smoker') && amt > 0 && yrs > 0 && currentSmokeType) {
+    meta += ' · ' + amt + ' ' + currentSmokeType.toLowerCase() + '/day × ' + yrs + 'yr';
+  }
+  if (py > 0) meta += ' · ' + py.toFixed(1) + ' pack-yrs';
+  if (syms.length) meta += ' · ' + syms.length + ' symptom' + (syms.length > 1 ? 's' : '');
+  document.getElementById('pmt').textContent = meta;
+  setStep(2);
+}
+
+function toStep1() { setStep(1); }
+
+function setStep(n) {
+  document.getElementById('p1').classList.toggle('on', n===1);
+  document.getElementById('p2').classList.toggle('on', n===2);
+  var n1=document.getElementById('sn1'), n2=document.getElementById('sn2');
+  var l1=document.getElementById('sl1'), l2=document.getElementById('sl2');
+  var sl=document.getElementById('sline'), pb=document.getElementById('pbar');
+  if (n===1) {
+    n1.className='snum active'; l1.className='slbl active';
+    n2.className='snum'; l2.className='slbl';
+    sl.className='sline'; pb.style.width='50%';
+  } else {
+    n1.className='snum done'; n1.textContent='✓'; l1.className='slbl done';
+    n2.className='snum active'; l2.className='slbl active';
+    sl.className='sline done'; pb.style.width='100%';
+  }
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function onFile(inp) {
+  var f = inp.files[0]; if (!f) return;
+  var rd = new FileReader();
+  rd.onload = function(e) {
+    var src = e.target.result;
+    document.getElementById('fpimg').src = src;
+    document.getElementById('fpnm').textContent = f.name;
+    document.getElementById('fpsz').textContent = (f.size/1024).toFixed(1)+' KB';
+    document.getElementById('dz').classList.add('has-file');
+    document.getElementById('fp').classList.add('on');
+    document.getElementById('ov-img').src = src;
+    document.getElementById('modal-thumb').src = src;
+    var st = (document.querySelector('input[name="scan_type"]') || {}).value || 'CT Scan';
+    document.getElementById('modal-sub').textContent = st+' · Ready for AI analysis';
+    var ti = new Image();
+    ti.onload = function() {
+      var w=ti.naturalWidth, h=ti.naturalHeight;
+      var rw=document.getElementById('rw'), rt=document.getElementById('rwt');
+      if (w<224||h<224) { rt.textContent='Low resolution ('+w+'×'+h+'px) — minimum 224×224 recommended.'; rw.classList.add('on'); }
+      else if (w*h<100000) { rt.textContent='Resolution ('+w+'×'+h+') may miss fine margins.'; rw.classList.add('on'); }
+      else { rw.classList.remove('on'); }
+    };
+    ti.src = src;
+    openModal();
+  };
+  rd.readAsDataURL(f);
+}
+
+function openModal()  { document.getElementById('diag-modal').classList.add('open'); }
+function closeModal() { document.getElementById('diag-modal').classList.remove('open'); }
+
+function changeFile() {
+  document.getElementById('dz').classList.remove('has-file');
+  document.getElementById('fp').classList.remove('on');
+  document.getElementById('rw').classList.remove('on');
+  document.getElementById('fi').value = '';
+  closeModal();
+}
+
+function valStep1() {
+  var ok = true;
+  function req(fid, val) {
+    var el = document.getElementById(fid);
+    if (!val) { el.classList.add('err'); ok = false; }
+    else el.classList.remove('err');
+  }
+  req('f-name',  document.getElementById('i-name').value.trim());
+  req('f-phone', document.getElementById('i-phone').value.trim());
+  req('f-smoke', document.getElementById('i-smoke').value);
+
+  var age = document.getElementById('i-age').value;
+  var fa  = document.getElementById('f-age');
+  if (!age || age < 1 || age > 120) { fa.classList.add('err'); ok = false; }
+  else fa.classList.remove('err');
+
+  var genderErr = document.getElementById('gender-err');
+  if (!document.querySelector('input[name="gender"]:checked')) {
+    if (genderErr) genderErr.style.display = 'block';
+    ok = false;
+  } else {
+    if (genderErr) genderErr.style.display = 'none';
+  }
+
+  var famErr = document.getElementById('family-history-err');
+  if (!document.querySelector('input[name="family_history"]:checked')) {
+    if (famErr) famErr.style.display = 'block';
+    ok = false;
+  } else {
+    if (famErr) famErr.style.display = 'none';
+  }
+
+  if (!ok) {
+    var firstErr = document.querySelector('.fld.err');
+    if (firstErr) firstErr.scrollIntoView({ behavior:'smooth', block:'center' });
+  }
+  return ok;
+}
+
+function submitDiagnosis() {
+  closeModal();
+  document.getElementById('scan-overlay').classList.add('active');
+  var msgs = ['Loading model...','Preprocessing image...','Running inference...','Detecting patterns...','Scoring Lung-RADS...','Generating report...'];
+  var i = 0;
+  var statusEl = document.getElementById('ov-status');
+  setInterval(function() {
+    i = (i+1) % msgs.length;
+    statusEl.style.opacity = 0;
+    setTimeout(function(){ statusEl.textContent = msgs[i]; statusEl.style.opacity = 1; }, 300);
+  }, 1600);
+  document.getElementById('wform').submit();
+}
+
+
+</script>
+{% endblock %}

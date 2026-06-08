@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DiagnosticAI — AI Lung Cancer Detection Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=Space+Mono:wght@400;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🫁</text></svg>">
+<style>
+  :root {
+    --navy: #0a0f1e;
+    --navy-mid: #111827;
+    --navy-light: #1e2d45;
+    --blue: #2563eb;
+    --blue-bright: #3b82f6;
+    --blue-glow: #60a5fa;
+    --cyan: #06b6d4;
+    --green: #10b981;
+    --red: #ef4444;
+    --amber: #f59e0b;
+    --text-primary: #f0f4ff;
+    --text-secondary: #94a3b8;
+    --text-muted: #475569;
+    --border: rgba(59,130,246,0.18);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--navy);
+    color: var(--text-primary);
+    overflow-x: hidden;
+  }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.3); border-radius: 3px; }
+
+  /* ── NAVBAR ── */
+  .navbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 60px;
+    background: rgba(10,15,30,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    transition: all 0.3s;
+  }
+  .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+  .nav-logo-icon {
+    width: 38px; height: 38px; background: var(--blue);
+    border-radius: 10px; display: flex; align-items: center;
+    justify-content: center; font-size: 18px;
+    box-shadow: 0 0 20px rgba(37,99,235,0.4);
+  }
+  .nav-logo-text { font-size: 20px; font-weight: 600; color: var(--text-primary); }
+  .nav-logo-text span { color: var(--blue-bright); }
+  .nav-links { display: flex; align-items: center; gap: 32px; }
+  .nav-link {
+    font-size: 14px; color: var(--text-secondary);
+    text-decoration: none; transition: color 0.2s;
+  }
+  .nav-link:hover { color: var(--text-primary); }
+  .nav-btn {
+    padding: 9px 22px; background: var(--blue); color: white;
+    border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif;
+    font-size: 14px; font-weight: 500; cursor: pointer;
+    text-decoration: none; transition: all 0.2s;
+    box-shadow: 0 4px 16px rgba(37,99,235,0.4);
+  }
+  .nav-btn:hover { background: #1d4ed8; transform: translateY(-1px); }
+
+  /* ── SECTIONS ── */
+  section { padding: 100px 60px; max-width: 1200px; margin: 0 auto; }
+  .section-full { max-width: 100%; padding: 0; }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+    background: linear-gradient(160deg, #060d1f 0%, #0e1f3d 50%, #050b18 100%);
+    padding: 0 60px;
+  }
+
+  .hero-bg {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 70% 50% at 50% 40%, rgba(37,99,235,0.2) 0%, transparent 70%);
+  }
+
+  /* Grid lines */
+  .hero-grid {
+    position: absolute; inset: 0; opacity: 0.04;
+    background-image:
+      linear-gradient(rgba(59,130,246,1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59,130,246,1) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  /* Floating rings */
+  .hero-rings {
+    position: absolute; right: 8%; top: 50%;
+    transform: translateY(-50%);
+    width: 500px; height: 500px;
+  }
+  .h-ring {
+    position: absolute; border-radius: 50%; border: 1px solid;
+    top: 50%; left: 50%; transform: translate(-50%,-50%);
+    animation: pulse-ring 3s ease-in-out infinite;
+  }
+  .h-ring:nth-child(1) { width: 90px;  height: 90px;  border-color: rgba(59,130,246,0.9); animation-delay: 0s; }
+  .h-ring:nth-child(2) { width: 180px; height: 180px; border-color: rgba(59,130,246,0.6); animation-delay: 0.4s; }
+  .h-ring:nth-child(3) { width: 270px; height: 270px; border-color: rgba(59,130,246,0.35); animation-delay: 0.8s; }
+  .h-ring:nth-child(4) { width: 360px; height: 360px; border-color: rgba(59,130,246,0.18); animation-delay: 1.2s; }
+  .h-ring:nth-child(5) { width: 460px; height: 460px; border-color: rgba(59,130,246,0.08); animation-delay: 1.6s; }
+  @keyframes pulse-ring {
+    0%,100% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+    50%      { transform: translate(-50%,-50%) scale(1.05); opacity: 0.5; }
+  }
+  .h-ring-core {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    width: 60px; height: 60px; background: var(--blue);
+    border-radius: 50%; font-size: 26px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 50px rgba(59,130,246,0.9), 0 0 100px rgba(59,130,246,0.4);
+  }
+
+  .hero-content {
+    position: relative; z-index: 2;
+    max-width: 600px;
+  }
+
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(37,99,235,0.15); border: 1px solid rgba(37,99,235,0.4);
+    padding: 7px 16px; border-radius: 20px; margin-bottom: 32px;
+    font-size: 12px; letter-spacing: 0.1em; color: var(--blue-glow);
+  }
+  .hero-badge-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--blue-bright);
+    animation: blink 1.5s ease-in-out infinite;
+  }
+  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  .hero-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 58px; font-weight: 700; line-height: 1.15;
+    margin-bottom: 24px;
+    background: linear-gradient(135deg, #f0f4ff 0%, #93c5fd 60%, #06b6d4 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-sub {
+    font-size: 18px; color: var(--text-secondary);
+    line-height: 1.8; margin-bottom: 40px; max-width: 500px;
+  }
+
+  .hero-btns { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 56px; }
+
+  .btn-hero-primary {
+    padding: 14px 32px; background: var(--blue); color: white;
+    border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif;
+    font-size: 16px; font-weight: 600; cursor: pointer;
+    text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+    box-shadow: 0 8px 32px rgba(37,99,235,0.45); transition: all 0.25s;
+  }
+  .btn-hero-primary:hover { background: #1d4ed8; transform: translateY(-2px); box-shadow: 0 12px 40px rgba(37,99,235,0.55); }
+
+  .btn-hero-ghost {
+    padding: 14px 32px; background: transparent; color: var(--text-primary);
+    border: 1px solid rgba(59,130,246,0.35); border-radius: 10px;
+    font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 500;
+    cursor: pointer; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 8px;
+    transition: all 0.25s;
+  }
+  .btn-hero-ghost:hover { border-color: var(--blue-bright); background: rgba(37,99,235,0.08); }
+
+  .hero-stats {
+    display: flex; gap: 40px; flex-wrap: wrap;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+  }
+  .h-stat-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 28px; font-weight: 700; color: var(--blue-glow);
+  }
+  .h-stat-lbl { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+  /* ── SECTION HEADERS ── */
+  .sec-badge {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: rgba(37,99,235,0.1); border: 1px solid rgba(37,99,235,0.3);
+    padding: 5px 14px; border-radius: 20px; margin-bottom: 16px;
+    font-size: 11px; letter-spacing: 0.1em; color: var(--blue-glow);
+  }
+  .sec-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 38px; font-weight: 600; line-height: 1.2;
+    margin-bottom: 16px;
+  }
+  .sec-sub {
+    font-size: 16px; color: var(--text-secondary);
+    line-height: 1.8; max-width: 600px; margin-bottom: 48px;
+  }
+
+  /* ── WHAT IS LUNG CANCER ── */
+  .what-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 60px;
+    align-items: center;
+  }
+  .info-card {
+    background: rgba(17,24,39,0.8); border: 1px solid var(--border);
+    border-radius: 16px; padding: 24px;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .info-card:hover { border-color: rgba(59,130,246,0.4); transform: translateY(-3px); }
+  .info-card-icon { font-size: 28px; margin-bottom: 14px; }
+  .info-card-title { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+  .info-card-text { font-size: 13px; color: var(--text-secondary); line-height: 1.7; }
+
+  .risk-list { display: flex; flex-direction: column; gap: 10px; margin-top: 24px; }
+  .risk-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; border-radius: 10px;
+    background: rgba(17,24,39,0.6); border: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .risk-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── STAGES ── */
+  .stages-section {
+    background: linear-gradient(135deg, rgba(17,24,39,0.9) 0%, rgba(10,15,30,0.9) 100%);
+    border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    padding: 100px 60px;
+  }
+  .stages-wrap { max-width: 1200px; margin: 0 auto; }
+
+  .stages-grid {
+    display: grid; grid-template-columns: repeat(4,1fr); gap: 16px;
+  }
+  .stage-card {
+    border-radius: 16px; padding: 28px 22px;
+    border: 1px solid var(--border); position: relative; overflow: hidden;
+    transition: all 0.25s; cursor: default;
+  }
+  .stage-card:hover { transform: translateY(-4px); }
+  .stage-card::before {
+    content: ''; position: absolute;
+    top: 0; left: 0; right: 0; height: 3px;
+    background: var(--stage-color);
+  }
+  .stage-card.s1 { --stage-color: var(--green);  background: rgba(16,185,129,0.05); }
+  .stage-card.s2 { --stage-color: var(--amber);  background: rgba(245,158,11,0.05); }
+  .stage-card.s3 { --stage-color: #f97316;        background: rgba(249,115,22,0.05); }
+  .stage-card.s4 { --stage-color: var(--red);     background: rgba(239,68,68,0.05); }
+
+  .stage-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px; letter-spacing: 0.1em; margin-bottom: 12px;
+    color: var(--stage-color);
+  }
+  .stage-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .stage-size  { font-size: 12px; color: var(--text-muted); margin-bottom: 14px; font-family: 'Space Mono', monospace; }
+  .stage-desc  { font-size: 13px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 16px; }
+  .stage-survival {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+    background: rgba(var(--stage-rgb),0.15);
+    border: 1px solid rgba(var(--stage-rgb),0.3);
+    color: var(--stage-color);
+  }
+  .stage-symptoms { margin-top: 14px; }
+  .stage-symptoms-title { font-size: 11px; letter-spacing: 0.06em; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; }
+  .symptom-tag { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; margin: 3px 2px; background: rgba(30,45,69,0.6); border: 1px solid var(--border); color: var(--text-secondary); }
+
+  /* ── HEALTHY VS AFFECTED ── */
+  .compare-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+  }
+  .compare-card {
+    border-radius: 16px; padding: 32px;
+    border: 1px solid var(--border);
+  }
+  .compare-card.healthy  { background: rgba(16,185,129,0.05); border-color: rgba(16,185,129,0.25); }
+  .compare-card.affected { background: rgba(239,68,68,0.05);  border-color: rgba(239,68,68,0.25); }
+  .compare-icon { font-size: 48px; margin-bottom: 16px; text-align: center; }
+  .compare-title { font-size: 20px; font-weight: 600; margin-bottom: 20px; text-align: center; }
+  .compare-list { display: flex; flex-direction: column; gap: 10px; }
+  .compare-item { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; line-height: 1.6; }
+  .compare-item-dot { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; margin-top: 2px; }
+  .dot-green { background: rgba(16,185,129,0.2); color: #34d399; }
+  .dot-red   { background: rgba(239,68,68,0.2);  color: #f87171; }
+
+  /* ── FOOD SECTION ── */
+  .food-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; margin-bottom: 40px; }
+  .food-card {
+    border-radius: 14px; padding: 24px;
+    background: rgba(17,24,39,0.8); border: 1px solid var(--border);
+    transition: all 0.2s; text-align: center;
+  }
+  .food-card:hover { border-color: rgba(59,130,246,0.4); transform: translateY(-3px); }
+  .food-emoji { font-size: 36px; margin-bottom: 12px; }
+  .food-name  { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+  .food-desc  { font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+  .food-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; margin-top: 10px; }
+  .food-badge.good { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+  .food-badge.bad  { background: rgba(239,68,68,0.15);  color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+
+  .food-section-title {
+    font-size: 18px; font-weight: 600; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  /* ── HOW AI HELPS ── */
+  .ai-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+  .ai-card {
+    border-radius: 14px; padding: 28px;
+    background: rgba(17,24,39,0.8); border: 1px solid var(--border);
+    transition: all 0.2s; position: relative; overflow: hidden;
+  }
+  .ai-card::after {
+    content: ''; position: absolute;
+    bottom: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--blue), var(--cyan));
+    opacity: 0;  transition: opacity 0.2s;
+  }
+  .ai-card:hover { border-color: rgba(59,130,246,0.4); transform: translateY(-3px); }
+  .ai-card:hover::after { opacity: 1; }
+  .ai-card-icon  { font-size: 32px; margin-bottom: 16px; }
+  .ai-card-title { font-size: 16px; font-weight: 600; margin-bottom: 10px; }
+  .ai-card-text  { font-size: 13px; color: var(--text-secondary); line-height: 1.7; }
+
+  /* ── CTA ── */
+  .cta-section {
+    background: linear-gradient(135deg, rgba(37,99,235,0.15) 0%, rgba(6,182,212,0.1) 100%);
+    border-top: 1px solid rgba(37,99,235,0.2);
+    border-bottom: 1px solid rgba(37,99,235,0.2);
+    text-align: center; padding: 100px 60px;
+  }
+  .cta-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 42px; font-weight: 700; margin-bottom: 16px;
+    background: linear-gradient(135deg, #f0f4ff, #93c5fd);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .cta-sub { font-size: 18px; color: var(--text-secondary); margin-bottom: 36px; }
+
+  /* ── FOOTER ── */
+  .footer {
+    background: rgba(10,15,30,0.97);
+    border-top: 1px solid var(--border);
+    padding: 40px 60px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 20px;
+  }
+  .footer-logo { display: flex; align-items: center; gap: 10px; }
+  .footer-text { font-size: 13px; color: var(--text-muted); }
+  .footer-links { display: flex; gap: 24px; }
+  .footer-link { font-size: 13px; color: var(--text-muted); text-decoration: none; transition: color 0.2s; }
+  .footer-link:hover { color: var(--blue-glow); }
+
+  /* ── DIVIDER ── */
+  .section-divider { height: 1px; background: var(--border); max-width: 1200px; margin: 0 auto; }
+
+  /* ── ANIMATE ON SCROLL ── */
+  .reveal { opacity: 0; transform: translateY(30px); transition: opacity 0.7s ease, transform 0.7s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  /* ── MOBILE RESPONSIVENESS OVERRIDES ── */
+  @media (max-width: 768px) {
+    .navbar {
+      padding: 12px 20px;
+    }
+    .nav-links a:not(.nav-btn) {
+      display: none;
+    }
+    .nav-links {
+      gap: 0;
+    }
+    section {
+      padding: 60px 20px;
+    }
+    .stages-section {
+      padding: 60px 20px;
+    }
+    .hero {
+      padding: 120px 20px 60px;
+      min-height: auto;
+      flex-direction: column;
+      text-align: center;
+    }
+    .hero-rings {
+      right: 50% !important;
+      top: 50% !important;
+      transform: translate(50%, -50%) !important;
+      width: 300px;
+      height: 300px;
+      opacity: 0.1;
+      pointer-events: none;
+    }
+    .hero-content {
+      max-width: 100%;
+    }
+    .hero-title {
+      font-size: 38px;
+    }
+    .hero-sub {
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .hero-btns {
+      justify-content: center;
+    }
+    .hero-stats {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .what-grid, .compare-grid, .food-grid, .ai-grid, .stages-grid {
+      grid-template-columns: 1fr !important;
+      gap: 24px;
+    }
+    div[style*="grid-template-columns:1fr 1fr;gap:16px"] {
+      grid-template-columns: 1fr !important;
+    }
+    .footer {
+      padding: 30px 20px;
+      flex-direction: column;
+      text-align: center;
+    }
+    .footer-links {
+      justify-content: center;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ NAVBAR ══ -->
+<nav class="navbar">
+  <a href="/" class="nav-logo">
+    <div class="nav-logo-icon">🫁</div>
+    <div class="nav-logo-text">Diagnostic<span>AI</span></div>
+  </a>
+  <div class="nav-links">
+    <a href="#about"     class="nav-link">About</a>
+    <a href="#stages"    class="nav-link">Cancer Stages</a>
+    <a href="#healthy"   class="nav-link">Lung Health</a>
+    <a href="#nutrition" class="nav-link">Nutrition</a>
+    <a href="#platform"  class="nav-link">Platform</a>
+    <a href="/login"     class="nav-btn">Doctor Login →</a>
+  </div>
+</nav>
+
+<!-- ══ HERO ══ -->
+<div class="hero" id="home">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+
+  <div class="hero-rings">
+    <div class="h-ring"></div>
+    <div class="h-ring"></div>
+    <div class="h-ring"></div>
+    <div class="h-ring"></div>
+    <div class="h-ring"></div>
+    <div class="h-ring-core">🫁</div>
+  </div>
+
+  <div class="hero-content">
+    <div class="hero-badge">
+      <div class="hero-badge-dot"></div>
+      AI-Powered Medical Diagnostics
+    </div>
+
+    <h1 class="hero-title">Early Detection Saves Lives</h1>
+
+    <p class="hero-sub">
+      DiagnosticAI uses deep learning to analyze CT and MRI scans for
+      early-stage lung cancer detection — with 98.8% clinical accuracy.
+      Built for radiologists and oncologists.
+    </p>
+
+    <div class="hero-btns">
+      <a href="/login" class="btn-hero-primary">🔬 Access Platform →</a>
+      <a href="#about" class="btn-hero-ghost">📖 Learn More</a>
+    </div>
+
+    <div class="hero-stats">
+      <div>
+        <div class="h-stat-num">98.8%</div>
+        <div class="h-stat-lbl">Detection Accuracy</div>
+      </div>
+      <div>
+        <div class="h-stat-num">&lt; 3s</div>
+        <div class="h-stat-lbl">Analysis Time</div>
+      </div>
+      <div>
+        <div class="h-stat-num">224×224</div>
+        <div class="h-stat-lbl">AI Image Resolution</div>
+      </div>
+      <div>
+        <div class="h-stat-num">4</div>
+        <div class="h-stat-lbl">Cancer Stages Detected</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ WHAT IS LUNG CANCER ══ -->
+<section id="about">
+  <div class="reveal">
+    <div class="sec-badge">🔬 Medical Overview</div>
+    <h2 class="sec-title">What is Lung Cancer?</h2>
+    <p class="sec-sub">
+      Lung cancer is the uncontrolled growth of abnormal cells in one or both lungs.
+      It is the leading cause of cancer-related deaths worldwide, yet early detection
+      dramatically improves survival outcomes.
+    </p>
+  </div>
+
+  <div class="what-grid reveal">
+    <div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+        <div class="info-card">
+          <div class="info-card-icon">🧬</div>
+          <div class="info-card-title">What Causes It?</div>
+          <div class="info-card-text">Abnormal cell mutations in lung tissue — triggered by carcinogens, genetic factors, or prolonged irritant exposure.</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-icon">📊</div>
+          <div class="info-card-title">Global Impact</div>
+          <div class="info-card-text">Over 2.2 million new cases diagnosed annually. Accounts for 18% of all cancer deaths worldwide.</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-icon">🏥</div>
+          <div class="info-card-title">Two Main Types</div>
+          <div class="info-card-text"><strong style="color:#60a5fa;">NSCLC</strong> — Non-Small Cell (85% of cases)<br><strong style="color:#60a5fa;">SCLC</strong> — Small Cell (15% of cases, aggressive)</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-icon">⏱️</div>
+          <div class="info-card-title">Early Detection</div>
+          <div class="info-card-text">Stage I detection gives a 5-year survival rate of <strong style="color:#34d399;">80–92%</strong> vs only 6% at Stage IV.</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size:16px;font-weight:600;margin-bottom:16px;">⚠️ Major Risk Factors</div>
+      <div class="risk-list">
+        <div class="risk-item"><div class="risk-dot" style="background:#ef4444;"></div>Smoking — responsible for 85% of lung cancer cases</div>
+        <div class="risk-item"><div class="risk-dot" style="background:#f97316;"></div>Secondhand smoke exposure over long periods</div>
+        <div class="risk-item"><div class="risk-dot" style="background:#f59e0b;"></div>Radon gas exposure in homes and workplaces</div>
+        <div class="risk-item"><div class="risk-dot" style="background:#eab308;"></div>Asbestos and chemical carcinogen exposure</div>
+        <div class="risk-item"><div class="risk-dot" style="background:#3b82f6;"></div>Family history of lung cancer</div>
+        <div class="risk-item"><div class="risk-dot" style="background:#6366f1;"></div>Air pollution and particulate matter (PM2.5)</div>
+        <div class="risk-item"><div class="risk-dot" style="background:#8b5cf6;"></div>Age above 55 with prior smoking history</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ══ STAGES ══ -->
+<div class="stages-section" id="stages">
+  <div class="stages-wrap">
+    <div class="reveal" style="text-align:center;margin-bottom:48px;">
+      <div class="sec-badge">📋 Clinical Staging</div>
+      <h2 class="sec-title">Stages of Lung Cancer</h2>
+      <p class="sec-sub" style="margin:0 auto;">
+        Understanding cancer staging helps determine the best treatment path.
+        Our AI model is trained to detect abnormalities across all stages.
+      </p>
+    </div>
+
+    <div class="stages-grid reveal">
+
+      <div class="stage-card s1">
+        <div class="stage-num">STAGE I — EARLY</div>
+        <div class="stage-title">Localized</div>
+        <div class="stage-size">Tumor: &lt; 3 cm</div>
+        <div class="stage-desc">Cancer is confined to the lung and has not spread to lymph nodes or other organs. Most treatable stage with surgical resection.</div>
+        <div class="stage-survival" style="color:#10b981;background:rgba(16,185,129,0.15);border-color:rgba(16,185,129,0.3);">✅ Survival: 80–92%</div>
+        <div class="stage-symptoms">
+          <div class="stage-symptoms-title">Common Signs</div>
+          <span class="symptom-tag">Mild cough</span>
+          <span class="symptom-tag">Often asymptomatic</span>
+          <span class="symptom-tag">Found via screening</span>
+        </div>
+      </div>
+
+      <div class="stage-card s2">
+        <div class="stage-num">STAGE II — REGIONAL</div>
+        <div class="stage-title">Spreading</div>
+        <div class="stage-size">Tumor: 3–7 cm</div>
+        <div class="stage-desc">Cancer has spread to nearby lymph nodes or chest wall. Surgery combined with chemotherapy or radiation is the primary treatment.</div>
+        <div class="stage-survival" style="color:#f59e0b;background:rgba(245,158,11,0.15);border-color:rgba(245,158,11,0.3);">⚠️ Survival: 53–60%</div>
+        <div class="stage-symptoms">
+          <div class="stage-symptoms-title">Common Signs</div>
+          <span class="symptom-tag">Persistent cough</span>
+          <span class="symptom-tag">Chest pain</span>
+          <span class="symptom-tag">Shortness of breath</span>
+        </div>
+      </div>
+
+      <div class="stage-card s3">
+        <div class="stage-num">STAGE III — ADVANCED</div>
+        <div class="stage-title">Extensive</div>
+        <div class="stage-size">Tumor: &gt; 7 cm</div>
+        <div class="stage-desc">Cancer has spread to nearby structures or distant lymph nodes. Combined chemo-radiation therapy with immunotherapy options.</div>
+        <div class="stage-survival" style="color:#f97316;background:rgba(249,115,22,0.15);border-color:rgba(249,115,22,0.3);">🔶 Survival: 26–36%</div>
+        <div class="stage-symptoms">
+          <div class="stage-symptoms-title">Common Signs</div>
+          <span class="symptom-tag">Hoarseness</span>
+          <span class="symptom-tag">Weight loss</span>
+          <span class="symptom-tag">Fatigue</span>
+          <span class="symptom-tag">Coughing blood</span>
+        </div>
+      </div>
+
+      <div class="stage-card s4">
+        <div class="stage-num">STAGE IV — METASTATIC</div>
+        <div class="stage-title">Metastatic</div>
+        <div class="stage-size">Spread to other organs</div>
+        <div class="stage-desc">Cancer has spread to distant organs — brain, liver, bones, or opposite lung. Palliative care and targeted therapy are primary focus.</div>
+        <div class="stage-survival" style="color:#ef4444;background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);">🔴 Survival: 6–10%</div>
+        <div class="stage-symptoms">
+          <div class="stage-symptoms-title">Common Signs</div>
+          <span class="symptom-tag">Bone pain</span>
+          <span class="symptom-tag">Headaches</span>
+          <span class="symptom-tag">Jaundice</span>
+          <span class="symptom-tag">Severe fatigue</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══ HEALTHY VS AFFECTED ══ -->
+<section id="healthy">
+  <div class="reveal" style="text-align:center;">
+    <div class="sec-badge">🫁 Lung Health</div>
+    <h2 class="sec-title">Healthy Lungs vs Affected Lungs</h2>
+    <p class="sec-sub" style="margin:0 auto 48px;">
+      Understanding the difference helps radiologists identify abnormalities
+      in CT and MRI scans more accurately.
+    </p>
+  </div>
+
+  <div class="compare-grid reveal">
+    <div class="compare-card healthy">
+      <div class="compare-icon">🫁</div>
+      <div class="compare-title" style="color:#34d399;">✅ Healthy Lungs</div>
+      <div class="compare-list">
+        <div class="compare-item">
+          <div class="compare-item-dot dot-green">✓</div>
+          <span>Clear, pink tissue with no nodules or masses visible on CT scan</span>
+        </div>
+        <div class="compare-item">
+          <div class="compare-item-dot dot-green">✓</div>
+          <span>Normal lung capacity — 6 liters for adult males, 4.2 liters for females</span>
+        </div>
+        <div class="compare-item">
+          <div class="compare-item-dot dot-green">✓</div>
+          <span>Clean airways with no obstruction or fluid accumulation</span>
+        </div>
+        <div class="compare-item">
+          <div class="compare-item-dot dot-green">✓</div>
+          <span>Normal oxygen saturation — SpO₂ above 95% at rest</span>
+        </div>
+        <div class="compare-item">
+          <div class="compare-item-dot dot-green">✓</div>
+          <span>Uniform tissue density on imaging — no ground glass opacities</span>
+        </div>
+        <div class="compare-item">
+          <div class="compare-item-dot dot-green">✓</div>
+          <span>No pleural effusion or abnormal fluid around lung lining</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="compare-card affected">
+      <div class="compare-icon">⚠️</div>
+      <div class="compare-title" style="color:#f87171;">🔴 Lung Cancer Indicators</div>
+      <div class="compare-list">
+        <div class="compare-item">
+          <div class="compare-item-dot dot-red">✗</div>
+          <span>Pulmonary nodules — round masses &gt; 3mm visible on CT scan</span>
+        </div>
+        <div class="compare-item">
+          <div class="compare-item-dot dot-red">✗</div>
+          <span>Ground glass opacities — hazy areas indicating cellular changes</span>
+        </div>
+        <div class="compare-item">
+          <div class="compare-item-dot dot-red">✗</div>
+          <span>Pleural effusion — abnormal fluid accumulation around lungs</span>
+        </div>
+        <div class="compare-item">
+          <div class="compare-item-dot dot-red">✗</div>
+          <span>Enlarged lymph nodes in mediastinum — indicating spread</span>
+        </div>
+        <div class="compare-item">
+          <div class="compare-item-dot dot-red">✗</div>
+          <span>Reduced lung volume and airway collapse in affected areas</span>
+        </div>
+        <div class="compare-item">
+          <div class="compare-item-dot dot-red">✗</div>
+          <span>Irregular spiculated masses with irregular borders on imaging</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ══ NUTRITION ══ -->
+<section id="nutrition">
+  <div class="reveal" style="text-align:center;">
+    <div class="sec-badge">🥗 Nutrition & Lifestyle</div>
+    <h2 class="sec-title">Foods That Protect Lung Health</h2>
+    <p class="sec-sub" style="margin:0 auto 48px;">
+      Dietary choices play a significant role in lung health and cancer risk reduction.
+      Here's what the evidence says about nutrition and lung protection.
+    </p>
+  </div>
+
+  <div class="reveal">
+    <div class="food-section-title">✅ Recommended Foods</div>
+    <div class="food-grid">
+      <div class="food-card">
+        <div class="food-emoji">🥦</div>
+        <div class="food-name">Cruciferous Vegetables</div>
+        <div class="food-desc">Broccoli, cauliflower, and cabbage contain sulforaphane — a compound proven to inhibit lung cancer cell growth.</div>
+        <span class="food-badge good">Anti-cancer</span>
+      </div>
+      <div class="food-card">
+        <div class="food-emoji">🫐</div>
+        <div class="food-name">Berries</div>
+        <div class="food-desc">Blueberries, strawberries, and raspberries are rich in antioxidants that protect lung tissue from oxidative damage.</div>
+        <span class="food-badge good">Antioxidant</span>
+      </div>
+      <div class="food-card">
+        <div class="food-emoji">🍵</div>
+        <div class="food-name">Green Tea</div>
+        <div class="food-desc">Contains EGCG (epigallocatechin gallate) — a potent polyphenol that inhibits cancer cell proliferation.</div>
+        <span class="food-badge good">Anti-inflammatory</span>
+      </div>
+      <div class="food-card">
+        <div class="food-emoji">🐟</div>
+        <div class="food-name">Fatty Fish</div>
+        <div class="food-desc">Salmon, mackerel, and sardines provide omega-3 fatty acids that reduce lung inflammation and cancer risk.</div>
+        <span class="food-badge good">Omega-3 rich</span>
+      </div>
+      <div class="food-card">
+        <div class="food-emoji">🥕</div>
+        <div class="food-name">Carrots & Carotenoids</div>
+        <div class="food-desc">Beta-carotene from carrots and sweet potatoes supports lung cell health and immune function.</div>
+        <span class="food-badge good">Lung protective</span>
+      </div>
+      <div class="food-card">
+        <div class="food-emoji">🧄</div>
+        <div class="food-name">Garlic & Onions</div>
+        <div class="food-desc">Allicin compounds in garlic have demonstrated anti-tumor properties and support immune system response.</div>
+        <span class="food-badge good">Immune boost</span>
+      </div>
+    </div>
+
+    <div class="food-section-title" style="margin-top:40px;">❌ Foods to Avoid</div>
+    <div class="food-grid">
+      <div class="food-card">
+        <div class="food-emoji">🥩</div>
+        <div class="food-name">Processed Red Meat</div>
+        <div class="food-desc">Bacon, sausages and cured meats contain nitrosamines — compounds linked to increased lung cancer risk.</div>
+        <span class="food-badge bad">Carcinogenic</span>
+      </div>
+      <div class="food-card">
+        <div class="food-emoji">🍟</div>
+        <div class="food-name">Fried & Processed Foods</div>
+        <div class="food-desc">Acrylamide formed in high-temperature frying is classified as a probable carcinogen by WHO.</div>
+        <span class="food-badge bad">Avoid</span>
+      </div>
+      <div class="food-card">
+        <div class="food-emoji">🧂</div>
+        <div class="food-name">High Sodium Foods</div>
+        <div class="food-desc">Excessive salt intake increases inflammation throughout the body and can compromise immune function.</div>
+        <span class="food-badge bad">Inflammatory</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ══ HOW AI HELPS ══ -->
+<section id="platform">
+  <div class="reveal" style="text-align:center;">
+    <div class="sec-badge">🤖 Our Platform</div>
+    <h2 class="sec-title">How DiagnosticAI Helps</h2>
+    <p class="sec-sub" style="margin:0 auto 48px;">
+      Our deep learning platform assists radiologists and oncologists
+      with fast, accurate, and explainable lung scan analysis.
+    </p>
+  </div>
+
+  <div class="ai-grid reveal">
+    <div class="ai-card">
+      <div class="ai-card-icon">⚡</div>
+      <div class="ai-card-title">Instant Analysis</div>
+      <div class="ai-card-text">Upload a CT or MRI scan and receive AI-powered prediction results in under 3 seconds — powered by TensorFlow deep learning.</div>
+    </div>
+    <div class="ai-card">
+      <div class="ai-card-icon">🎯</div>
+      <div class="ai-card-title">98.8% Accuracy</div>
+      <div class="ai-card-text">Our ResNet-based model is trained on thousands of validated scans, achieving clinical-grade accuracy with confidence scoring.</div>
+    </div>
+    <div class="ai-card">
+      <div class="ai-card-icon">📊</div>
+      <div class="ai-card-title">Risk Stratification</div>
+      <div class="ai-card-text">Every result comes with a risk level — HIGH, MEDIUM, or LOW — helping prioritize which patients need urgent attention.</div>
+    </div>
+    <div class="ai-card">
+      <div class="ai-card-icon">🗂️</div>
+      <div class="ai-card-title">Patient Records</div>
+      <div class="ai-card-text">All scans and results are securely stored in a searchable database, enabling longitudinal tracking of patient progress.</div>
+    </div>
+    <div class="ai-card">
+      <div class="ai-card-icon">📄</div>
+      <div class="ai-card-title">Printable Reports</div>
+      <div class="ai-card-text">Generate and print professional diagnostic reports for each patient — ready to attach to clinical notes or referrals.</div>
+    </div>
+    <div class="ai-card">
+      <div class="ai-card-icon">🔒</div>
+      <div class="ai-card-title">Secure & Private</div>
+      <div class="ai-card-text">Doctor authentication with session management. Patient data stored locally with SQLite — no cloud dependency required.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CTA ══ -->
+<div class="cta-section">
+  <div class="reveal">
+    <div class="sec-badge" style="margin:0 auto 20px;">🚀 Get Started</div>
+    <h2 class="cta-title">Ready to Detect Cancer Earlier?</h2>
+    <p class="cta-sub">Join DiagnosticAI and bring AI-powered precision to your diagnostic workflow.</p>
+    <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
+      <a href="/login"  class="btn-hero-primary">🔬 Doctor Login →</a>
+      <a href="/signup" class="btn-hero-ghost">📝 Create Account</a>
+    </div>
+  </div>
+</div>
+
+<!-- ══ FOOTER ══ -->
+<div class="footer">
+  <div class="footer-logo">
+    <div class="nav-logo-icon" style="width:32px;height:32px;font-size:16px;">🫁</div>
+    <div style="font-size:16px;font-weight:600;">Diagnostic<span style="color:#3b82f6;">AI</span></div>
+  </div>
+  <div class="footer-text">© 2026 DiagnosticAI · AI-Powered Lung Cancer Detection · For clinical use only</div>
+  <div class="footer-links">
+    <a href="#about"   class="footer-link">About</a>
+    <a href="#stages"  class="footer-link">Stages</a>
+    <a href="#healthy" class="footer-link">Lung Health</a>
+    <a href="/login"   class="footer-link">Login</a>
+  </div>
+</div>
+
+<script>
+// ── SCROLL REVEAL ──
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ── NAVBAR SCROLL EFFECT ──
+window.addEventListener('scroll', () => {
+  const nav = document.querySelector('.navbar');
+  if (window.scrollY > 50) {
+    nav.style.padding = '12px 60px';
+    nav.style.boxShadow = '0 4px 30px rgba(0,0,0,0.3)';
+  } else {
+    nav.style.padding = '16px 60px';
+    nav.style.boxShadow = 'none';
+  }
+});
+</script>
+</body>
+</html>

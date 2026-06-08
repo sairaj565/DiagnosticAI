@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}DiagnosticAI — Clinical AI Detection Platform{% endblock %}</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🫁</text></svg>">
+  
+  <!-- CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  
+  {% block extra_styles %}{% endblock %}
+</head>
+<body>
+
+  <!-- MOBILE HEADER -->
+  <div class="mobile-header">
+    <button class="mobile-menu-btn" onclick="toggleMobileSidebar(true)">
+      <i data-lucide="menu"></i>
+    </button>
+    <div class="mobile-logo">
+      <div class="logo-icon" style="width: 28px; height: 28px; font-size: 16px; border-radius: 8px;">🫁</div>
+      <div class="logo-text">Diagnostic<span>AI</span></div>
+    </div>
+    <div style="width: 32px;"></div>
+  </div>
+
+  <!-- SIDEBAR BACKDROP -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleMobileSidebar(false)"></div>
+
+  <!-- SIDEBAR NAVIGATION -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">🫁</div>
+      <div class="logo-text sidebar-label">Diagnostic<span>AI</span></div>
+      <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar(event)">‹</button>
+    </div>
+    
+    <div class="nav-section">
+      <div class="nav-label sidebar-label">Main</div>
+      
+      <a href="/dashboard" class="nav-item {% if active_page == 'dashboard' %}active{% endif %}">
+        <span class="nav-icon"><i data-lucide="layout-dashboard"></i></span>
+        <span class="sidebar-label">Dashboard</span>
+      </a>
+      
+      <a href="/upload" class="nav-item {% if active_page == 'upload' %}active{% endif %}">
+        <span class="nav-icon"><i data-lucide="upload-cloud"></i></span>
+        <span class="sidebar-label">Upload Scan</span>
+      </a>
+      
+      <a href="/records" class="nav-item {% if active_page == 'records' %}active{% endif %}">
+        <span class="nav-icon"><i data-lucide="folder-heart"></i></span>
+        <span class="sidebar-label">Patient Records</span>
+      </a>
+      
+      <a href="/reports" class="nav-item {% if active_page == 'reports' %}active{% endif %}">
+        <span class="nav-icon"><i data-lucide="file-text"></i></span>
+        <span class="sidebar-label">Reports</span>
+      </a>
+      
+      <a href="/analytics" class="nav-item {% if active_page == 'analytics' %}active{% endif %}">
+        <span class="nav-icon"><i data-lucide="trending-up"></i></span>
+        <span class="sidebar-label">Analytics</span>
+      </a>
+      
+      <a href="/evaluation" class="nav-item {% if active_page == 'evaluation' %}active{% endif %}">
+        <span class="nav-icon"><i data-lucide="cpu"></i></span>
+        <span class="sidebar-label">Model Evaluation</span>
+      </a>
+      
+      <div class="nav-label sidebar-label">Account</div>
+      
+      <a href="/settings" class="nav-item {% if active_page == 'settings' %}active{% endif %}">
+        <span class="nav-icon"><i data-lucide="settings"></i></span>
+        <span class="sidebar-label">Settings</span>
+      </a>
+      
+      <a href="#" onclick="showDisclaimerModal(event)" class="nav-item">
+        <span class="nav-icon"><i data-lucide="shield-alert"></i></span>
+        <span class="sidebar-label">Disclaimer</span>
+      </a>
+      
+      <a href="#" onclick="confirmLogout(event)" class="nav-item">
+        <span class="nav-icon"><i data-lucide="log-out"></i></span>
+        <span class="sidebar-label">Logout</span>
+      </a>
+    </div>
+    
+    <div class="sidebar-footer">
+      <div class="doctor-card">
+        <div class="doctor-avatar">
+          {{ doctor_name[:2].upper() if doctor_name else 'DR' }}
+        </div>
+        <div class="sidebar-label">
+          <div class="doctor-name">Dr. {{ doctor_name }}</div>
+          <div class="doctor-role">{{ session.get('doctor_spec', 'Radiologist') }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT AREA -->
+  <div class="main-content" id="main-content">
+    {% block content %}{% endblock %}
+  </div>
+
+  <!-- LOGOUT CONFIRMATION MODAL -->
+  <div id="logout-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.65);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
+    <div style="background:linear-gradient(145deg,#111827,#0d1525);border:1px solid rgba(239,68,68,0.3);border-radius:20px;padding:36px 40px;width:380px;max-width:90vw;text-align:center;box-shadow:0 25px 80px rgba(0,0,0,0.7);">
+      <div style="width:64px;height:64px;border-radius:50%;background:rgba(239,68,68,0.12);border:2px solid rgba(239,68,68,0.4);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:26px;color:#ef4444;">↩</div>
+      <div style="font-size:20px;font-weight:700;color:#f0f4ff;margin-bottom:10px;">Logout of DiagnosticAI?</div>
+      <div style="font-size:13px;color:#94a3b8;margin-bottom:32px;line-height:1.7;">Your session will be ended.<br>Any unsaved work may be lost.</div>
+      <div style="display:flex;gap:12px;justify-content:center;">
+        <button onclick="stayOnPage()" style="flex:1;padding:12px 0;border-radius:10px;border:1px solid rgba(59,130,246,0.35);background:rgba(37,99,235,0.1);color:#93c5fd;font-size:14px;font-weight:500;font-family:inherit;cursor:pointer;"
+          onmouseover="this.style.background='rgba(37, 99, 235, 0.22)'" onmouseout="this.style.background='rgba(37, 99, 235, 0.1)'">No, Stay</button>
+        <button onclick="doLogout()" style="flex:1;padding:12px 0;border-radius:10px;border:none;background:linear-gradient(135deg,#ef4444,#dc2626);color:white;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;"
+          onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Yes, Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLINICAL DISCLAIMER MODAL -->
+  <div id="disclaimer-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.65);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
+    <div style="background:linear-gradient(145deg,#0b0f19,#070b13);border:1px solid rgba(59,130,246,0.25);border-radius:20px;padding:36px 40px;width:520px;max-width:92vw;box-shadow:0 25px 80px rgba(0,0,0,0.7);">
+      <div style="width:52px;height:52px;border-radius:50%;background:rgba(59,130,246,0.12);border:2px solid rgba(59,130,246,0.4);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:24px;color:#60a5fa;">⚖️</div>
+      <div style="font-size:22px;font-weight:700;color:#f0f4ff;margin-bottom:12px;text-align:center;">Clinical Disclaimer</div>
+      <div style="font-size:13.5px;color:#94a3b8;margin-bottom:28px;line-height:1.7;text-align:justify;">
+        <p style="margin-bottom:12px;"><strong>DiagnosticAI is an academic prototype designed for research and educational purposes.</strong> It is not a certified medical device and has not received clearance or approval from regulatory agencies (such as the FDA, CE, or CDSCO).</p>
+        <p style="margin-bottom:12px;">Predictions, categories (including Lung-RADS levels), and performance statistics (such as the 99.4% validation accuracy benchmark) are generated automatically based on static testing sets (e.g. LIDC-IDRI). They serve as academic benchmarks and do not guarantee real-world clinical performance.</p>
+        <p style="margin-bottom:0;">All results are for research support and must be cross-referenced with professional evaluations from certified medical practitioners.</p>
+      </div>
+      <div style="display:flex;justify-content:center;">
+        <button onclick="closeDisclaimerModal()" style="padding:12px 36px;border-radius:10px;border:none;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:white;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;box-shadow:0 4px 16px rgba(37,99,235,0.4);"
+          onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Understood & Accept</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <!-- Lucide Vector Icons Library -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% block extra_scripts %}{% endblock %}
+
+</body>
+</html>

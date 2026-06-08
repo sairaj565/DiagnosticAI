@@ -1,0 +1,2044 @@
+{% extends "base.html" %}
+
+{% block title %}DiagnosticAI — Analytics{% endblock %}
+
+{% block extra_styles %}
+<style>
+/* Page specific analytics styling */
+/* TOPBAR */
+.topbar{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;}
+.page-title{font-size:26px;font-weight:600;}
+.page-desc{font-size:13px;color:var(--text-secondary);margin-top:4px;}
+
+/* FILTER BAR */
+.filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:24px;flex-wrap:wrap;}
+.filter-label{font-size:12px;color:var(--text-muted);margin-right:2px;}
+.filter-btn{padding:7px 16px;border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text-secondary);transition:all .15s;}
+.filter-btn:hover{border-color:var(--blue-bright);color:var(--text-primary);}
+.filter-btn.active{background:rgba(37,99,235,.2);border-color:var(--blue-bright);color:var(--blue-glow);font-weight:500;}
+
+/* CARD */
+.card{background:var(--card-bg);border:1px solid var(--border);border-radius:14px;padding:22px;}
+.section-title{font-size:14px;font-weight:600;margin-bottom:3px;}
+.section-sub{font-size:11px;color:var(--text-muted);margin-bottom:14px;}
+.divider{height:1px;background:var(--border);margin:14px 0;}
+
+/* KPI STRIP */
+.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:20px;}
+.kpi-card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:16px 18px;position:relative;overflow:hidden;transition:transform .2s,border-color .2s;}
+.kpi-card:hover{transform:translateY(-2px);}
+.kpi-icon{font-size:18px;margin-bottom:6px;}
+.kpi-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;}
+.kpi-value{font-family:'Space Mono',monospace;font-size:24px;font-weight:700;line-height:1;}
+.kpi-sub{font-size:11px;color:var(--text-muted);margin-top:4px;}
+.kpi-card.blue{border-color:rgba(37,99,235,.4);}  .kpi-card.blue .kpi-value{color:#93c5fd;}
+.kpi-card.red{border-color:rgba(239,68,68,.4);}   .kpi-card.red .kpi-value{color:#f87171;}
+.kpi-card.green{border-color:rgba(16,185,129,.4);}.kpi-card.green .kpi-value{color:#34d399;}
+.kpi-card.amber{border-color:rgba(245,158,11,.4);}.kpi-card.amber .kpi-value{color:#fbbf24;}
+.kpi-card.cyan{border-color:rgba(6,182,212,.4);}  .kpi-card.cyan .kpi-value{color:#22d3ee;}
+.kpi-card.purple{border-color:rgba(139,92,246,.4);}.kpi-card.purple .kpi-value{color:#c4b5fd;}
+
+/* LEGEND */
+.donut-legend{display:flex;flex-direction:column;gap:7px;margin-top:10px;}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:12px;}
+.legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.legend-val{margin-left:auto;font-family:'Space Mono',monospace;font-size:10px;color:var(--text-muted);}
+
+/* HBAR */
+.hbar-row{margin-bottom:12px;}
+.hbar-header{display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px;}
+.hbar-label{color:var(--text-secondary);}
+.hbar-count{font-family:'Space Mono',monospace;color:var(--text-muted);font-size:11px;}
+.hbar-track{height:8px;border-radius:4px;background:rgba(30,45,69,.8);overflow:hidden;}
+.hbar-fill{height:100%;border-radius:4px;width:0%;transition:width 1.4s cubic-bezier(.25,.46,.45,.94);}
+
+/* RISK CARDS */
+.risk-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.risk-card{border-radius:10px;padding:14px;text-align:center;}
+.risk-card.high{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.28);}
+.risk-card.medium{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.25);}
+.risk-card.low{background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.25);}
+.risk-num{font-family:'Space Mono',monospace;font-size:28px;font-weight:700;}
+.risk-card.high .risk-num{color:#f87171;}
+.risk-card.medium .risk-num{color:#fbbf24;}
+.risk-card.low .risk-num{color:#34d399;}
+.risk-lbl{font-size:11px;margin-top:5px;color:var(--text-secondary);}
+
+/* HIGHLIGHT CARD */
+.hl-card{border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:14px;}
+.hl-card.danger{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.25);}
+.hl-card.warning{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.22);}
+.hl-card.info{background:rgba(37,99,235,.07);border:1px solid rgba(37,99,235,.22);}
+.hl-num{font-family:'Space Mono',monospace;font-size:32px;font-weight:700;}
+.hl-card.danger .hl-num{color:#f87171;}
+.hl-card.warning .hl-num{color:#fbbf24;}
+.hl-card.info .hl-num{color:#93c5fd;}
+.hl-emoji{font-size:26px;margin-left:auto;}
+
+/* LR DIST */
+.lr-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.lr-badge{width:34px;height:34px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-size:10px;font-weight:700;flex-shrink:0;}
+.lr-track{flex:1;height:9px;border-radius:5px;background:rgba(30,45,69,.8);overflow:hidden;}
+.lr-fill{height:100%;border-radius:5px;width:0%;transition:width 1.4s cubic-bezier(.25,.46,.45,.94);}
+.lr-count{font-family:'Space Mono',monospace;font-size:11px;color:var(--text-muted);width:28px;text-align:right;flex-shrink:0;}
+
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-thumb{background:rgba(59,130,246,.3);border-radius:3px;}
+
+/* ══ ANIMATION SYSTEM ══ */
+@keyframes fadeSlideDown{from{opacity:0;transform:translateY(-18px);}to{opacity:1;transform:translateY(0);}}
+.topbar{animation:fadeSlideDown .5s ease both;}
+.filter-bar{animation:fadeSlideDown .5s .1s ease both;}
+
+@keyframes kpiIn{from{opacity:0;transform:translateY(24px) scale(.96);}to{opacity:1;transform:translateY(0) scale(1);}}
+.kpi-card{opacity:0;animation:kpiIn .55s ease both;}
+.kpi-card:nth-child(1){animation-delay:.08s;}
+.kpi-card:nth-child(2){animation-delay:.16s;}
+.kpi-card:nth-child(3){animation-delay:.24s;}
+.kpi-card:nth-child(4){animation-delay:.32s;}
+.kpi-card:nth-child(5){animation-delay:.40s;}
+.kpi-card:nth-child(6){animation-delay:.48s;}
+.kpi-card:hover{transform:translateY(-4px) scale(1.02) !important;box-shadow:0 12px 32px rgba(0,0,0,.4);}
+
+/* Scroll-reveal */
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .6s ease,transform .6s ease;}
+.reveal.revealed{opacity:1;transform:translateY(0);}
+.reveal-group>*{opacity:0;transform:translateY(22px);transition:opacity .5s ease,transform .5s ease;}
+.reveal-group.revealed>*:nth-child(1){opacity:1;transform:none;transition-delay:.04s;}
+.reveal-group.revealed>*:nth-child(2){opacity:1;transform:none;transition-delay:.11s;}
+.reveal-group.revealed>*:nth-child(3){opacity:1;transform:none;transition-delay:.18s;}
+.reveal-group.revealed>*:nth-child(4){opacity:1;transform:none;transition-delay:.25s;}
+.reveal-group.revealed>*:nth-child(5){opacity:1;transform:none;transition-delay:.32s;}
+.reveal-group.revealed>*:nth-child(6){opacity:1;transform:none;transition-delay:.39s;}
+
+/* Highlight card pop */
+@keyframes hlPop{from{opacity:0;transform:scale(.9) translateX(-12px);}to{opacity:1;transform:scale(1) translateX(0);}}
+.hl-card{opacity:0;}
+.hl-card.pop{animation:hlPop .45s cubic-bezier(.34,1.56,.64,1) both;}
+.hl-card.pop:nth-of-type(1){animation-delay:0s;}
+.hl-card.pop:nth-of-type(2){animation-delay:.1s;}
+.hl-card.pop:nth-of-type(3){animation-delay:.2s;}
+
+/* Risk card glow */
+@keyframes glowRed{0%,100%{box-shadow:none;}50%{box-shadow:0 0 20px rgba(239,68,68,.3);}}
+@keyframes glowAmber{0%,100%{box-shadow:none;}50%{box-shadow:0 0 20px rgba(245,158,11,.25);}}
+@keyframes glowGreen{0%,100%{box-shadow:none;}50%{box-shadow:0 0 20px rgba(16,185,129,.25);}}
+.risk-card.high.glow{animation:glowRed 1s ease 1;}
+.risk-card.medium.glow{animation:glowAmber 1s ease 1;}
+.risk-card.low.glow{animation:glowGreen 1s ease 1;}
+
+/* Shimmer on filter change */
+@keyframes shimmer{0%{background-position:-400px 0;}100%{background-position:400px 0;}}
+.card{position:relative;overflow:hidden;}
+.card.refreshing::after{content:'';position:absolute;inset:0;border-radius:14px;background:linear-gradient(90deg,transparent 25%,rgba(59,130,246,.07) 50%,transparent 75%);background-size:800px 100%;animation:shimmer .65s linear;pointer-events:none;}
+
+/* Trend btn bounce */
+@keyframes btnBounce{0%{transform:scale(1);}40%{transform:scale(.92);}70%{transform:scale(1.06);}100%{transform:scale(1);}}
+.filter-btn.bounce{animation:btnBounce .28s ease both;}
+
+/* Number flash on update */
+@keyframes numFlash{0%{opacity:.3;}50%{opacity:1;}100%{opacity:1;}}
+.num-flash{animation:numFlash .4s ease both;}
+
+/* ═══════════════════════════════════════
+   INSIGHT PANEL
+   ═══════════════════════════════════════ */
+#insight-panel{
+  position:fixed; top:0; right:-460px; width:440px; height:100vh;
+  background:linear-gradient(180deg,#0d1a2e 0%,#080e1c 100%);
+  border-left:1px solid rgba(59,130,246,0.25);
+  z-index:2000; display:flex; flex-direction:column;
+  transition:right 0.38s cubic-bezier(0.22,1,0.36,1);
+  box-shadow:-20px 0 60px rgba(0,0,0,0.55);
+}
+#insight-panel.open{ right:0; }
+
+/* Overlay */
+#insight-overlay{
+  position:fixed; inset:0; z-index:1999;
+  background:rgba(0,0,0,0); pointer-events:none;
+  transition:background 0.35s ease;
+}
+#insight-overlay.active{
+  background:rgba(0,0,0,0.45); pointer-events:all;
+}
+
+/* Panel header */
+.ip-head{
+  padding:20px 22px 16px;
+  border-bottom:1px solid rgba(59,130,246,0.18);
+  display:flex; align-items:flex-start; justify-content:space-between;
+  flex-shrink:0;
+}
+.ip-head-left{ flex:1; }
+.ip-badge{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:4px 10px; border-radius:20px; font-size:11px; font-weight:600;
+  margin-bottom:8px; text-transform:uppercase; letter-spacing:.06em;
+}
+.ip-title{ font-size:17px; font-weight:700; line-height:1.2; margin-bottom:4px; }
+.ip-sub{ font-size:12px; color:#64748b; }
+.ip-close{
+  width:30px; height:30px; border-radius:8px; flex-shrink:0; margin-left:12px;
+  background:rgba(30,45,69,.6); border:1px solid rgba(59,130,246,.2);
+  color:#94a3b8; cursor:pointer; font-size:16px;
+  display:flex; align-items:center; justify-content:center;
+  transition:all .2s;
+}
+.ip-close:hover{ background:rgba(239,68,68,.15); border-color:rgba(239,68,68,.3); color:#f87171; }
+
+/* Scroll body */
+.ip-body{
+  flex:1; overflow-y:auto; padding:18px 22px 24px;
+}
+.ip-body::-webkit-scrollbar{ width:4px; }
+.ip-body::-webkit-scrollbar-thumb{ background:rgba(59,130,246,.25); border-radius:2px; }
+
+/* Section */
+.ip-section{ margin-bottom:20px; }
+.ip-section-title{
+  font-size:10px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.1em; color:#475569; margin-bottom:10px;
+  padding-bottom:6px; border-bottom:1px solid rgba(59,130,246,.12);
+}
+
+/* Stat row */
+.ip-stat-row{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:9px 0; border-bottom:1px solid rgba(30,45,69,.6); font-size:13px;
+}
+.ip-stat-row:last-child{ border-bottom:none; }
+.ip-stat-label{ color:#94a3b8; }
+.ip-stat-val{ font-weight:600; font-family:'Space Mono',monospace; font-size:12px; }
+
+/* Insight cards */
+.ip-insight{
+  border-radius:10px; padding:13px 15px; margin-bottom:10px;
+  display:flex; gap:12px; align-items:flex-start;
+  border:1px solid rgba(59,130,246,.1);
+}
+.ip-insight.critical{ background:rgba(239,68,68,.07); border-color:rgba(239,68,68,.2); }
+.ip-insight.warning{  background:rgba(245,158,11,.06); border-color:rgba(245,158,11,.18); }
+.ip-insight.positive{ background:rgba(16,185,129,.06); border-color:rgba(16,185,129,.18); }
+.ip-insight.info{     background:rgba(37,99,235,.07);  border-color:rgba(37,99,235,.18); }
+.ip-insight-icon{ font-size:20px; flex-shrink:0; margin-top:1px; }
+.ip-insight-label{
+  font-size:10px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.07em; margin-bottom:4px;
+}
+.ip-insight.critical .ip-insight-label{ color:#f87171; }
+.ip-insight.warning  .ip-insight-label{ color:#fbbf24; }
+.ip-insight.positive .ip-insight-label{ color:#34d399; }
+.ip-insight.info     .ip-insight-label{ color:#93c5fd; }
+.ip-insight-text{ font-size:13px; color:#cbd5e1; line-height:1.6; }
+.ip-insight-text strong{ color:#f0f4ff; }
+
+/* Recommendation pills */
+.ip-rec-list{ display:flex; flex-direction:column; gap:8px; }
+.ip-rec{
+  display:flex; align-items:flex-start; gap:10px;
+  padding:10px 13px; border-radius:9px;
+  background:rgba(30,45,69,.4); border:1px solid rgba(59,130,246,.12);
+  font-size:12px; color:#94a3b8; line-height:1.5;
+}
+.ip-rec-num{
+  width:20px; height:20px; border-radius:50%; flex-shrink:0;
+  background:rgba(37,99,235,.25); border:1px solid rgba(37,99,235,.4);
+  color:#93c5fd; font-size:10px; font-weight:700;
+  display:flex; align-items:center; justify-content:center; margin-top:1px;
+}
+
+/* Clickable cards get cursor + ring */
+.clickable-card{
+  cursor:pointer; transition:border-color .2s, box-shadow .2s, transform .18s;
+  position:relative;
+}
+.clickable-card:hover{
+  border-color:rgba(96,165,250,0.45) !important;
+  box-shadow:0 0 0 2px rgba(37,99,235,.12), 0 8px 28px rgba(0,0,0,.35);
+  transform:translateY(-3px);
+}
+.clickable-card::before{
+  content:'💡 Click for insights';
+  position:absolute; bottom:10px; right:12px;
+  font-size:10px; color:rgba(96,165,250,.5);
+  opacity:0; transition:opacity .2s;
+  pointer-events:none;
+}
+.clickable-card:hover::before{ opacity:1; }
+
+/* KPI cards click hint */
+.kpi-card.clickable-card::before{ bottom:8px; right:8px; font-size:9px; }
+
+/* Panel entry animation */
+@keyframes ipInsightIn{
+  from{ opacity:0; transform:translateX(16px); }
+  to{   opacity:1; transform:translateX(0); }
+}
+.ip-insight, .ip-rec{
+  animation:ipInsightIn .3s ease both;
+}
+.ip-insight:nth-child(1){ animation-delay:.05s; }
+.ip-insight:nth-child(2){ animation-delay:.10s; }
+.ip-insight:nth-child(3){ animation-delay:.15s; }
+.ip-insight:nth-child(4){ animation-delay:.20s; }
+.ip-rec:nth-child(1){ animation-delay:.25s; }
+.ip-rec:nth-child(2){ animation-delay:.30s; }
+.ip-rec:nth-child(3){ animation-delay:.35s; }
+
+/* Live Clinical Insights Card */
+.live-insights-card {
+  border-color: rgba(99, 102, 241, 0.35) !important;
+  background: linear-gradient(135deg, rgba(13, 25, 47, 0.85) 0%, rgba(8, 14, 28, 0.9) 100%) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+}
+.insight-alert-item {
+  background: rgba(30, 45, 69, 0.3);
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  position: relative;
+  overflow: hidden;
+}
+.insight-alert-item::after {
+  content: '💡 Details';
+  position: absolute;
+  bottom: 8px;
+  right: 12px;
+  font-size: 9px;
+  color: rgba(165, 180, 252, 0.5);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.insight-alert-item:hover::after {
+  opacity: 1;
+}
+.insight-alert-item:hover {
+  transform: translateY(-2px);
+  background: rgba(30, 45, 69, 0.5);
+  border-color: rgba(99, 102, 241, 0.4);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+}
+.insight-alert-item.critical {
+  border-left: 4px solid #ef4444;
+}
+.insight-alert-item.warning {
+  border-left: 4px solid #f59e0b;
+}
+.insight-alert-item.info {
+  border-left: 4px solid #3b82f6;
+}
+.insight-alert-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.insight-alert-item.critical .insight-alert-title { color: #f87171; }
+.insight-alert-item.warning .insight-alert-title { color: #fbbf24; }
+.insight-alert-item.info .insight-alert-title { color: #93c5fd; }
+
+.insight-alert-text {
+  font-size: 12px;
+  color: #cbd5e1;
+  line-height: 1.5;
+}
+.insight-alert-text strong {
+  color: #fff;
+}
+
+#live-insights-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+@media (max-width: 900px) {
+  #live-insights-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+@keyframes pulse-red {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ══ INSIGHT OVERLAY ══ -->
+<div id="insight-overlay" onclick="closeInsight()"></div>
+
+<!-- ══ INSIGHT PANEL ══ -->
+<div id="insight-panel">
+  <div class="ip-head">
+    <div class="ip-head-left">
+      <div class="ip-badge" id="ip-badge">📊 Analytics</div>
+      <div class="ip-title" id="ip-title">Loading...</div>
+      <div class="ip-sub" id="ip-sub">—</div>
+    </div>
+    <button class="ip-close" onclick="closeInsight()">✕</button>
+  </div>
+  <div class="ip-body" id="ip-body">
+    <!-- populated by JS -->
+  </div>
+</div>
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div>
+      <h1 class="page-title">📈 Analytics</h1>
+      <p class="page-desc">Patient data insights · powered by your diagnostic records</p>
+    </div>
+  </div>
+
+  <!-- FILTER BAR -->
+  <div class="filter-bar">
+    <span class="filter-label">Time Range:</span>
+    <button class="filter-btn" onclick="setFilter('today',this)">Today</button>
+    <button class="filter-btn" onclick="setFilter('7d',this)">Last 7 Days</button>
+    <button class="filter-btn" onclick="setFilter('30d',this)">Last 30 Days</button>
+    <button class="filter-btn active" onclick="setFilter('all',this)">All Time</button>
+  </div>
+
+  <!-- CLINICAL INSIGHTS SUMMARY CARD -->
+  <div class="card live-insights-card reveal" style="margin-bottom:20px; position: relative; overflow: hidden;">
+    <div style="position: absolute; top: -50px; right: -50px; width: 150px; height: 150px; background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(99, 102, 241, 0) 70%); pointer-events: none;"></div>
+    
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 20px;">💡</span>
+        <div style="display: flex; flex-direction: column;">
+          <span style="font-size: 14px; font-weight: 700; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 8px;">
+            Clinical Insights Summary
+            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #ef4444; box-shadow: 0 0 8px #ef4444; animation: pulse-red 1.8s infinite;"></span>
+          </span>
+          <span style="font-size: 11px; color: var(--text-muted);">Real-time cohort patterns & critical warnings based on active filters</span>
+        </div>
+      </div>
+      <span style="font-size: 10px; color: #a5b4fc; background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.25); padding: 4px 10px; border-radius: 12px; font-family: 'Space Mono', monospace; font-weight: 600;" id="live-insights-count">3 Alerts Active</span>
+    </div>
+    
+    <div id="live-insights-container">
+      <!-- Populated by JS updateLiveInsights -->
+    </div>
+  </div>
+
+  <!-- ══ ROW 1 — KPI STRIP ══ -->
+  <div class="kpi-grid">
+    <div class="kpi-card blue clickable-card" onclick="showInsight('total')">
+      <div class="kpi-icon">👥</div>
+      <div class="kpi-label">Total Patients</div>
+      <div class="kpi-value" id="kpi-total">0</div>
+      <div class="kpi-sub">all scans</div>
+    </div>
+    <div class="kpi-card red clickable-card" onclick="showInsight('tumor')">
+      <div class="kpi-icon">🎗️</div>
+      <div class="kpi-label">Tumor Detected</div>
+      <div class="kpi-value" id="kpi-tumor">0</div>
+      <div class="kpi-sub" id="kpi-tumor-pct">—%</div>
+    </div>
+    <div class="kpi-card green clickable-card" onclick="showInsight('normal')">
+      <div class="kpi-icon">✅</div>
+      <div class="kpi-label">Normal</div>
+      <div class="kpi-value" id="kpi-normal">0</div>
+      <div class="kpi-sub" id="kpi-normal-pct">—%</div>
+    </div>
+    <div class="kpi-card amber clickable-card" onclick="showInsight('age')">
+      <div class="kpi-icon">📅</div>
+      <div class="kpi-label">Avg Age</div>
+      <div class="kpi-value" id="kpi-avgage">0</div>
+      <div class="kpi-sub">years</div>
+    </div>
+    <div class="kpi-card cyan clickable-card" onclick="showInsight('confidence')">
+      <div class="kpi-icon">🤖</div>
+      <div class="kpi-label">Avg Confidence</div>
+      <div class="kpi-value" id="kpi-avgconf">0%</div>
+      <div class="kpi-sub">AI score</div>
+    </div>
+    <div class="kpi-card purple clickable-card" onclick="showInsight('risk')">
+      <div class="kpi-icon">⚠️</div>
+      <div class="kpi-label">High Risk</div>
+      <div class="kpi-value" id="kpi-highrisk">0</div>
+      <div class="kpi-sub">patients</div>
+    </div>
+  </div>
+
+  <!-- ══ ROW 2 — DEMOGRAPHICS ══ -->
+  <div class="reveal-group" id="row-demographics" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-bottom:18px;">
+
+    <!-- Gender donut -->
+    <div class="card clickable-card" onclick="showInsight('gender')">
+      <div class="section-title">👥 Gender Distribution</div>
+      <div class="section-sub">Male vs Female patient split</div>
+      <div style="position:relative;width:150px;height:150px;margin:0 auto 10px;">
+        <canvas id="c-gender" width="150" height="150"></canvas>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;">
+          <div style="font-family:'Space Mono',monospace;font-size:18px;font-weight:700;" id="gender-center">—</div>
+          <div style="font-size:10px;color:var(--text-muted);">total</div>
+        </div>
+      </div>
+      <div class="donut-legend" id="leg-gender"></div>
+    </div>
+
+    <!-- Diagnosis donut -->
+    <div class="card clickable-card" onclick="showInsight('diagnosis')">
+      <div class="section-title">🎗️ Diagnosis Split</div>
+      <div class="section-sub">Tumor Detected vs Normal</div>
+      <div style="position:relative;width:150px;height:150px;margin:0 auto 10px;">
+        <canvas id="c-diagnosis" width="150" height="150"></canvas>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;">
+          <div style="font-family:'Space Mono',monospace;font-size:18px;font-weight:700;color:#f87171;" id="diag-center">—</div>
+          <div style="font-size:10px;color:var(--text-muted);">tumors</div>
+        </div>
+      </div>
+      <div class="donut-legend" id="leg-diagnosis"></div>
+    </div>
+
+    <!-- Age bar -->
+    <div class="card clickable-card" onclick="showInsight('age_dist')">
+      <div class="section-title">📅 Age Distribution</div>
+      <div class="section-sub">Patients by age group</div>
+      <div style="height:150px;"><canvas id="c-age"></canvas></div>
+      <div style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:8px;" id="avg-age-lbl">Avg age: —</div>
+    </div>
+  </div>
+
+  <!-- ══ ROW 3 — DIAGNOSIS × GENDER + CONFIDENCE ══ -->
+  <div class="reveal-group" id="row-diag" style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px;">
+
+    <!-- Grouped bar: Tumor/Normal × Male/Female -->
+    <div class="card clickable-card" onclick="showInsight('diag_gender')">
+      <div class="section-title">🎗️ Diagnosis × Gender</div>
+      <div class="section-sub">Tumor Detected and Normal split by gender</div>
+      <div style="height:170px;"><canvas id="c-diag-gender"></canvas></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:12px;" id="diag-gender-mini"></div>
+    </div>
+
+    <!-- Confidence + Risk -->
+    <div class="card clickable-card" onclick="showInsight('confidence_risk')">
+      <div class="section-title">🤖 AI Confidence Breakdown</div>
+      <div class="section-sub">Avg confidence — Tumor vs Normal cases</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+        <div style="text-align:center;padding:18px 10px;border-radius:10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);">
+          <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">Tumor Cases</div>
+          <div style="font-family:'Space Mono',monospace;font-size:26px;font-weight:700;color:#f87171;" id="conf-tumor">—</div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:3px;">avg conf</div>
+        </div>
+        <div style="text-align:center;padding:18px 10px;border-radius:10px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);">
+          <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">Normal Cases</div>
+          <div style="font-family:'Space Mono',monospace;font-size:26px;font-weight:700;color:#34d399;" id="conf-normal">—</div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:3px;">avg conf</div>
+        </div>
+      </div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:10px;color:var(--text-secondary);">⚠️ Risk Level Distribution</div>
+      <div class="risk-grid">
+        <div class="risk-card high"><div class="risk-num" id="risk-high">0</div><div class="risk-lbl">🔴 High</div></div>
+        <div class="risk-card medium"><div class="risk-num" id="risk-med">0</div><div class="risk-lbl">🟡 Medium</div></div>
+        <div class="risk-card low"><div class="risk-num" id="risk-low">0</div><div class="risk-lbl">🟢 Low</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ROW 4 — SMOKING ══ -->
+  <div class="reveal-group" id="row-smoking" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-bottom:18px;">
+
+    <!-- Smoking counts hbars -->
+    <div class="card clickable-card" onclick="showInsight('smoking')">
+      <div class="section-title">🚬 Smoking Status</div>
+      <div class="section-sub">Patient count by smoking history</div>
+      <div id="smoking-hbars"></div>
+    </div>
+
+    <!-- Smoking × diagnosis grouped bar -->
+    <div class="card clickable-card" onclick="showInsight('smoking_diag')">
+      <div class="section-title">🚬 Smoking × Diagnosis</div>
+      <div class="section-sub">Tumor rate per smoking category</div>
+      <div style="height:170px;"><canvas id="c-smoking-diag"></canvas></div>
+      <div style="display:flex;gap:14px;margin-top:10px;justify-content:center;">
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;"><div style="width:8px;height:8px;border-radius:50%;background:#ef4444;"></div><span style="color:var(--text-muted);">Tumor</span></div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;"><div style="width:8px;height:8px;border-radius:50%;background:#10b981;"></div><span style="color:var(--text-muted);">Normal</span></div>
+      </div>
+    </div>
+
+    <!-- Risk highlight cards -->
+    <div class="card clickable-card" style="display:flex;flex-direction:column;gap:10px;" onclick="showInsight('highlights')">
+      <div class="section-title">⚠️ Risk Highlights</div>
+      <div class="section-sub">Notable clinical patterns</div>
+      <div class="hl-card danger">
+        <div>
+          <div style="font-size:10px;color:#f87171;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">Never Smoked + Tumor</div>
+          <div class="hl-num" id="hl-never-tumor">0</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">concerning cases</div>
+        </div>
+        <div class="hl-emoji">🚨</div>
+      </div>
+      <div class="hl-card warning">
+        <div>
+          <div style="font-size:10px;color:#fbbf24;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">Age 50+ + Tumor</div>
+          <div class="hl-num" id="hl-age50-tumor">0</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">high-risk age group</div>
+        </div>
+        <div class="hl-emoji">👴</div>
+      </div>
+      <div class="hl-card info">
+        <div>
+          <div style="font-size:10px;color:#93c5fd;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">Current Smoker + Tumor</div>
+          <div class="hl-num" id="hl-smoker-tumor">0</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">active smokers</div>
+        </div>
+        <div class="hl-emoji">🚬</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ROW 5 — TIME TRENDS ══ -->
+  <div class="reveal" id="row-trend" style="margin-bottom:18px;">
+  <div class="card clickable-card" onclick="showInsight('trends')">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
+      <div class="section-title">📅 Scan Trends Over Time</div>
+      <div style="display:flex;gap:6px;">
+        <button class="filter-btn active" id="btn-daily"   onclick="setTrend('daily',this);event.stopPropagation();">Daily</button>
+        <button class="filter-btn"        id="btn-weekly"  onclick="setTrend('weekly',this);event.stopPropagation();">Weekly</button>
+        <button class="filter-btn"        id="btn-monthly" onclick="setTrend('monthly',this);event.stopPropagation();">Monthly</button>
+      </div>
+    </div>
+    <div class="section-sub">Total scans vs Tumor detections over time</div>
+    <div style="display:flex;gap:14px;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:6px;font-size:11px;"><div style="width:12px;height:3px;background:#3b82f6;border-radius:2px;"></div><span style="color:var(--text-muted);">Total Scans</span></div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:11px;"><div style="width:12px;height:3px;background:#ef4444;border-radius:2px;"></div><span style="color:var(--text-muted);">Tumor Detected</span></div>
+    </div>
+    <div style="height:200px;"><canvas id="c-trend"></canvas></div>
+  </div>
+  </div><!-- /row-trend reveal -->
+
+  <!-- ══ ROW 6 — SCAN TYPE + LUNG-RADS ══ -->
+  <div class="reveal-group" id="row-bottom" style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px;">
+
+    <!-- Scan type donut -->
+    <div class="card clickable-card" onclick="showInsight('scantype')">
+      <div class="section-title">🩻 Scan Type Breakdown</div>
+      <div class="section-sub">Distribution of scan modalities used</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:center;">
+        <div style="position:relative;width:150px;height:150px;margin:0 auto;">
+          <canvas id="c-scantype" width="150" height="150"></canvas>
+        </div>
+        <div class="donut-legend" id="leg-scantype"></div>
+      </div>
+    </div>
+
+    <!-- Lung-RADS dist -->
+    <div class="card clickable-card" onclick="showInsight('lungrads')">
+      <div class="section-title">📊 Lung-RADS Distribution</div>
+      <div class="section-sub">Patient count per Lung-RADS category · derived from confidence + result</div>
+      <div id="lr-bars" style="margin-top:4px;"></div>
+    </div>
+  </div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- Load Chart.js from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// ══════════════════════════════════════
+// DATA — injected by Flask
+// ══════════════════════════════════════
+var ALL_PATIENTS = {{ patients_json | safe }};
+var curFilter = 'all';
+var curTrend  = 'daily';
+
+// ══════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════
+function avg(arr){ return arr.length ? arr.reduce(function(a,b){return a+b;},0)/arr.length : 0; }
+function pct(n, total){ return total ? ((n/total)*100).toFixed(1)+'%' : '—%'; }
+function ease(t){ return 1-Math.pow(1-t,3); } // cubic ease-out
+
+// ══════════════════════════════════════
+// ANIMATED COUNT-UP  (0 → target)
+// ══════════════════════════════════════
+function countUp(el, target, dur, decimals, suffix){
+  if(!el) return;
+  dur=dur||900; decimals=decimals||0; suffix=suffix||'';
+  var start=performance.now();
+  el.classList.remove('num-flash'); void el.offsetWidth; el.classList.add('num-flash');
+  requestAnimationFrame(function tick(now){
+    var p=Math.min((now-start)/dur,1), v=ease(p)*target;
+    el.textContent=(decimals?v.toFixed(decimals):Math.round(v))+suffix;
+    if(p<1) requestAnimationFrame(tick);
+    else el.textContent=(decimals?target.toFixed(decimals):target)+suffix;
+  });
+}
+
+// ══════════════════════════════════════
+// SCROLL-TRIGGERED REVEAL (IntersectionObserver)
+// ══════════════════════════════════════
+var revealCallbacks = {}; // id → fn to call when section enters viewport
+
+function registerReveal(id, fn){
+  revealCallbacks[id] = fn;
+}
+
+function initObserver(){
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        var el=e.target;
+        el.classList.add('revealed');
+        // Fire registered callback (charts animate on scroll-in)
+        if(el.id && revealCallbacks[el.id]){
+          revealCallbacks[el.id]();
+          delete revealCallbacks[el.id]; // fire once
+        }
+        io.unobserve(el);
+      }
+    });
+  },{threshold:0.12});
+
+  document.querySelectorAll('.reveal,.reveal-group').forEach(function(el){
+    io.observe(el);
+  });
+}
+
+// ══════════════════════════════════════
+// SHIMMER CARDS ON FILTER CHANGE
+// ══════════════════════════════════════
+function shimmerCards(){
+  document.querySelectorAll('.card').forEach(function(c){
+    c.classList.remove('refreshing'); void c.offsetWidth; c.classList.add('refreshing');
+    setTimeout(function(){ c.classList.remove('refreshing'); }, 700);
+  });
+}
+
+// ══════════════════════════════════════
+// FILTER + TREND
+// ══════════════════════════════════════
+function filterPts(range){
+  if(range==='all') return ALL_PATIENTS;
+  var now=new Date(), cut=new Date();
+  if(range==='today') cut.setHours(0,0,0,0);
+  else if(range==='7d')  cut.setDate(now.getDate()-7);
+  else if(range==='30d') cut.setDate(now.getDate()-30);
+  return ALL_PATIENTS.filter(function(p){ return new Date(p.created_at)>=cut; });
+}
+function setFilter(r,btn){
+  curFilter=r;
+  document.querySelectorAll('.filter-bar .filter-btn').forEach(function(b){ b.classList.remove('active','bounce'); });
+  btn.classList.add('active','bounce');
+  shimmerCards();
+  setTimeout(function(){ renderAll(filterPts(r)); }, 80);
+}
+function setTrend(t,btn){
+  curTrend=t;
+  ['btn-daily','btn-weekly','btn-monthly'].forEach(function(id){
+    var b=document.getElementById(id);
+    if(b){ b.classList.remove('active','bounce'); }
+  });
+  btn.classList.add('active','bounce');
+  drawTrend(filterPts(curFilter));
+}
+
+// ══════════════════════════════════════
+// CHART.JS INSTANCE MANAGER
+// ══════════════════════════════════════
+var charts = {};
+function renderChart(id, config) {
+  if (charts[id]) {
+    charts[id].destroy();
+  }
+  var cv = document.getElementById(id);
+  if (!cv) return;
+  var ctx = cv.getContext('2d');
+  charts[id] = new Chart(ctx, config);
+}
+
+// ══════════════════════════════════════
+// HTML LEGEND GENERATOR
+// ══════════════════════════════════════
+function renderHtmlLegend(legId, data, colors, total) {
+  var leg = document.getElementById(legId);
+  if (!leg) return;
+  leg.innerHTML = '';
+  data.forEach(function(d, i){
+    var p2 = total ? ((d.v / total) * 100).toFixed(1) : 0;
+    leg.innerHTML += '<div class="legend-item"><div class="legend-dot" style="background:' + colors[i] + '"></div>'
+      + '<span style="color:var(--text-secondary);font-size:12px;">' + d.l + '</span>'
+      + '<span class="legend-val">' + d.v + ' (' + p2 + '%)</span></div>';
+  });
+}
+
+// ══════════════════════════════════════
+// HBARS (horizontal, animated width)
+// ══════════════════════════════════════
+function renderHBars(id, rows, colorFn, delay){
+  delay=delay||0;
+  var maxV=Math.max.apply(null,rows.map(function(r){return r.v;}))||1;
+  var html='';
+  rows.forEach(function(r){
+    var p=((r.v/maxV)*100).toFixed(0);
+    var c=typeof colorFn==='function'?colorFn(r):colorFn;
+    html+='<div class="hbar-row">'
+      +'<div class="hbar-header"><span class="hbar-label">'+r.l+'</span><span class="hbar-count">'+r.v+'</span></div>'
+      +'<div class="hbar-track"><div class="hbar-fill" style="background:'+c+';" data-p="'+p+'"></div></div>'
+      +'</div>';
+  });
+  document.getElementById(id).innerHTML=html;
+  setTimeout(function(){
+    document.getElementById(id).querySelectorAll('.hbar-fill').forEach(function(el,i){
+      setTimeout(function(){
+        el.style.width=el.getAttribute('data-p')+'%';
+      }, i*80); // stagger each bar
+    });
+  }, delay);
+}
+
+// ══════════════════════════════════════
+// TREND GROUPING
+// ══════════════════════════════════════
+function groupTime(patients, type){
+  var bkt={};
+  patients.forEach(function(p){
+    var d=new Date(p.created_at), key;
+    if(type==='daily')       key=d.toISOString().slice(0,10);
+    else if(type==='weekly'){
+      var day=d.getDay()||7, mon=new Date(d);
+      mon.setDate(d.getDate()-day+1); key=mon.toISOString().slice(0,10);
+    } else key=d.toISOString().slice(0,7);
+    if(!bkt[key]) bkt[key]={t:0,tumor:0};
+    bkt[key].t++; if(p.result==='Tumor Detected') bkt[key].tumor++;
+  });
+  var keys=Object.keys(bkt).sort();
+  return {
+    labels:keys.map(function(k){ return k.length>7?k.slice(5):k; }),
+    total: keys.map(function(k){ return bkt[k].t; }),
+    tumor: keys.map(function(k){ return bkt[k].tumor; })
+  };
+}
+function drawTrend(patients){
+  var g = groupTime(patients, curTrend);
+  
+  renderChart('c-trend', {
+    type: 'line',
+    data: {
+      labels: g.labels,
+      datasets: [
+        {
+          label: 'Total Scans',
+          data: g.total,
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59, 130, 246, 0.08)',
+          borderWidth: 2.5,
+          tension: 0.35,
+          fill: true,
+          pointBackgroundColor: '#3b82f6',
+          pointHoverRadius: 6,
+          pointRadius: 4
+        },
+        {
+          label: 'Tumor Detected',
+          data: g.tumor,
+          borderColor: '#ef4444',
+          backgroundColor: 'rgba(239, 68, 68, 0.05)',
+          borderWidth: 2.5,
+          tension: 0.35,
+          fill: true,
+          pointBackgroundColor: '#ef4444',
+          pointHoverRadius: 6,
+          pointRadius: 4
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0f172a',
+          borderColor: 'rgba(59, 130, 246, 0.2)',
+          borderWidth: 1,
+          titleColor: '#f8fafc',
+          bodyColor: '#cbd5e1',
+          padding: 8,
+          cornerRadius: 6
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: '#64748b', font: { family: "'DM Sans', sans-serif", size: 10 } }
+        },
+        y: {
+          grid: { color: 'rgba(148, 163, 184, 0.08)' },
+          border: { dash: [4, 4] },
+          ticks: { color: '#64748b', precision: 0, font: { family: "'DM Sans', sans-serif", size: 10 } }
+        }
+      }
+    }
+  });
+}
+
+// ══════════════════════════════════════
+// LUNG-RADS DERIVATION
+// ══════════════════════════════════════
+function deriveLR(p){
+  var c=p.confidence, isTumor=(p.result==='Tumor Detected');
+  if(isTumor){ if(c>=92) return '4B'; if(c>=82) return '4A'; return '3'; }
+  return c>=92?'1':'2';
+}
+
+// ══════════════════════════════════════
+// HIGHLIGHT CARD POP ANIMATION
+// ══════════════════════════════════════
+function popHighlightCards(){
+  document.querySelectorAll('.hl-card').forEach(function(el,i){
+    el.classList.remove('pop'); void el.offsetWidth;
+    el.style.animationDelay=(i*0.1)+'s';
+    el.classList.add('pop');
+  });
+}
+
+// ══════════════════════════════════════
+// RISK CARD GLOW
+// ══════════════════════════════════════
+function glowRiskCards(){
+  ['risk-card high','risk-card medium','risk-card low'].forEach(function(cls){
+    var parts=cls.split(' ');
+    document.querySelectorAll('.'+parts[0]+'.'+parts[1]).forEach(function(el){
+      el.classList.remove('glow'); void el.offsetWidth; el.classList.add('glow');
+    });
+  });
+}
+
+// ══════════════════════════════════════
+// DYNAMIC LIVE INSIGHTS CARD
+// ══════════════════════════════════════
+function updateLiveInsights(pts) {
+  var total = pts.length;
+  var container = document.getElementById('live-insights-container');
+  var countEl = document.getElementById('live-insights-count');
+  
+  if (total === 0) {
+    container.innerHTML = '<div style="grid-column: span 3; text-align: center; padding: 20px; color: var(--text-muted); font-size: 13px;">No patient records available for the selected time range.</div>';
+    countEl.textContent = '0 Warnings Active';
+    return;
+  }
+  
+  var tumors = pts.filter(function(p){ return p.result==='Tumor Detected'; });
+  var normals = pts.filter(function(p){ return p.result==='Normal'; });
+  var nT = tumors.length;
+  var nN = normals.length;
+  var rH = pts.filter(function(p){ return (p.risk||'').toUpperCase()==='HIGH'; }).length;
+  var age50T = pts.filter(function(p){ return p.age>=50 && p.result==='Tumor Detected'; }).length;
+  var curTumor = pts.filter(function(p){ return p.smoking==='Current Smoker' && p.result==='Tumor Detected'; }).length;
+  var nevTumor = pts.filter(function(p){ return p.smoking==='Never Smoked' && p.result==='Tumor Detected'; }).length;
+
+  var lr4Count = 0;
+  pts.forEach(function(p){
+    var cat = deriveLR(p);
+    if(cat === '4A' || cat === '4B') lr4Count++;
+  });
+
+  var candidates = [];
+
+  // 1. High Risk Alert
+  if (rH > 0) {
+    candidates.push({
+      title: 'Urgent Staging',
+      icon: '🚨',
+      cls: 'critical',
+      text: '<strong>' + rH + ' High Risk case' + (rH > 1 ? 's' : '') + '</strong> detected with AI score ≥85%. Urgent oncology referral recommended.',
+      priority: 1,
+      key: 'risk'
+    });
+  }
+
+  // 2. Lung-RADS 4 Alert
+  if (lr4Count > 0) {
+    candidates.push({
+      title: 'ACR Category 4',
+      icon: '🔬',
+      cls: 'critical',
+      text: '<strong>' + lr4Count + ' patient' + (lr4Count > 1 ? 's are' : ' is') + '</strong> Lung-RADS 4 (Suspicious). Pathological biopsy indicated.',
+      priority: 2,
+      key: 'lungrads'
+    });
+  }
+
+  // 3. Tumor Detection Rate Alert
+  if (total > 0 && (nT / total) > 0.25) {
+    candidates.push({
+      title: 'Elevated Prevalence',
+      icon: '🎗️',
+      cls: nT / total > 0.4 ? 'critical' : 'warning',
+      text: 'Cohort tumor detection rate is <strong>' + pct(nT, total) + '</strong> (' + nT + '/' + total + ' scans). Review referral streams.',
+      priority: 3,
+      key: 'tumor'
+    });
+  }
+
+  // 4. Non-Smoker Nodule Alert
+  if (nevTumor > 0) {
+    candidates.push({
+      title: 'Atypical Nodule',
+      icon: '❓',
+      cls: 'warning',
+      text: '<strong>' + nevTumor + ' never-smoker' + (nevTumor > 1 ? 's have' : ' has') + '</strong> detected tumor. Assess radon & genetic markers.',
+      priority: 4,
+      key: 'highlights'
+    });
+  }
+
+  // 5. Active Smoker Tumor Alert
+  if (curTumor > 0) {
+    candidates.push({
+      title: 'Cessation Therapy',
+      icon: '🚬',
+      cls: 'warning',
+      text: '<strong>' + curTumor + ' active smoker' + (curTumor > 1 ? 's have' : ' has') + '</strong> tumor. Smoking cessation intervention required.',
+      priority: 5,
+      key: 'smoking'
+    });
+  }
+
+  // 6. Age 50+ Nodule Alert
+  if (age50T > 0) {
+    candidates.push({
+      title: 'Age Risk Factor',
+      icon: '👴',
+      cls: 'warning',
+      text: '<strong>' + age50T + ' tumor' + (age50T > 1 ? 's are' : ' is') + '</strong> in 50+ age bracket. Expedite geriatric oncology staging.',
+      priority: 6,
+      key: 'age_dist'
+    });
+  }
+
+  // 7. Normal Cohort Info
+  if (nN > 0) {
+    candidates.push({
+      title: 'Negative Screening',
+      icon: '✅',
+      cls: 'info',
+      text: '<strong>' + pct(nN, total) + '</strong> of scanned patients (' + nN + '/' + total + ') are Normal. Schedule routine annual scans.',
+      priority: 7,
+      key: 'normal'
+    });
+  }
+
+  // Sort and select top 3
+  candidates.sort(function(a, b){ return a.priority - b.priority; });
+  var selected = candidates.slice(0, 3);
+  
+  // Render
+  container.innerHTML = '';
+  selected.forEach(function(ins){
+    container.innerHTML += 
+      '<div class="insight-alert-item ' + ins.cls + '" onclick="showInsight(\'' + ins.key + '\')">' +
+        '<div class="insight-alert-title"><span style="font-size: 14px;">' + ins.icon + '</span> ' + ins.title + '</div>' +
+        '<div class="insight-alert-text">' + ins.text + '</div>' +
+      '</div>';
+  });
+
+  var warningsCount = selected.filter(function(i){ return i.cls === 'critical' || i.cls === 'warning'; }).length;
+  countEl.textContent = warningsCount + ' ' + (warningsCount === 1 ? 'Warning' : 'Warnings') + ' Active';
+}
+
+// ══════════════════════════════════════
+// MAIN RENDER
+// ══════════════════════════════════════
+function renderAll(pts){
+  var total  =pts.length;
+  var tumors =pts.filter(function(p){return p.result==='Tumor Detected';});
+  var normals=pts.filter(function(p){return p.result==='Normal';});
+  var males  =pts.filter(function(p){return (p.gender||'').toLowerCase()==='male';});
+  var females=pts.filter(function(p){return (p.gender||'').toLowerCase()==='female';});
+  var others =pts.filter(function(p){
+    var g=(p.gender||'').toLowerCase(); return g!=='male'&&g!=='female'&&g!=='';
+  });
+
+  // Global variables declared early to avoid uninitialized variable exceptions
+  var smokeCats=['Current Smoker','Former Smoker','Never Smoked','Passive Smoker'];
+
+  // ── KPIs (staggered count-up) ──
+  countUp(document.getElementById('kpi-total'),   total,       900, 0, '');
+  setTimeout(function(){ countUp(document.getElementById('kpi-tumor'),    tumors.length,  800); }, 80);
+  setTimeout(function(){ countUp(document.getElementById('kpi-normal'),   normals.length, 800); }, 160);
+  document.getElementById('kpi-tumor-pct').textContent  = pct(tumors.length, total);
+  document.getElementById('kpi-normal-pct').textContent = pct(normals.length, total);
+
+  var ages=pts.filter(function(p){return p.age>0;}).map(function(p){return p.age;});
+  var avgAge=avg(ages);
+  setTimeout(function(){ countUp(document.getElementById('kpi-avgage'), Math.round(avgAge), 1000); }, 240);
+
+  var confs=pts.filter(function(p){return p.confidence>0;}).map(function(p){return p.confidence;});
+  var avgConf=avg(confs);
+  setTimeout(function(){ document.getElementById('kpi-avgconf').textContent=avgConf.toFixed(1)+'%'; }, 320);
+
+  var highRisk=pts.filter(function(p){return (p.risk||'').toUpperCase()==='HIGH';}).length;
+  setTimeout(function(){ countUp(document.getElementById('kpi-highrisk'), highRisk, 800); }, 400);
+
+  // ── Live insights ──
+  updateLiveInsights(pts);
+
+  // ── Gender donut ──
+  var unknown=total-males.length-females.length-others.length;
+  var gData=[{l:'Male',v:males.length},{l:'Female',v:females.length}];
+  if(others.length)  gData.push({l:'Other',v:others.length});
+  if(unknown>0)      gData.push({l:'Unknown',v:unknown});
+  
+  renderHtmlLegend('leg-gender', gData, ['#3b82f6','#ec4899','#8b5cf6','#475569'], total);
+  document.getElementById('gender-center').textContent = total;
+
+  renderChart('c-gender', {
+    type: 'doughnut',
+    data: {
+      labels: gData.map(function(d){ return d.l; }),
+      datasets: [{
+        data: gData.map(function(d){ return d.v; }),
+        backgroundColor: ['#3b82f6','#ec4899','#8b5cf6','#475569'].slice(0, gData.length),
+        borderWidth: 0,
+        hoverOffset: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '72%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0f172a',
+          borderColor: 'rgba(59, 130, 246, 0.2)',
+          borderWidth: 1,
+          titleColor: '#f8fafc',
+          bodyColor: '#cbd5e1',
+          padding: 8,
+          cornerRadius: 6
+        }
+      }
+    }
+  });
+
+  // ── Diagnosis donut ──
+  renderHtmlLegend('leg-diagnosis',
+    [{l:'Tumor Detected',v:tumors.length},{l:'Normal',v:normals.length}],
+    ['#ef4444','#10b981'], total);
+  document.getElementById('diag-center').textContent=tumors.length;
+
+  renderChart('c-diagnosis', {
+    type: 'doughnut',
+    data: {
+      labels: ['Tumor Detected', 'Normal'],
+      datasets: [{
+        data: [tumors.length, normals.length],
+        backgroundColor: ['#ef4444','#10b981'],
+        borderWidth: 0,
+        hoverOffset: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '72%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0f172a',
+          borderColor: 'rgba(59, 130, 246, 0.2)',
+          borderWidth: 1,
+          titleColor: '#f8fafc',
+          bodyColor: '#cbd5e1',
+          padding: 8,
+          cornerRadius: 6
+        }
+      }
+    }
+  });
+
+  // ── Age bar ──
+  var ageBkt={'<40':0,'40–50':0,'50–60':0,'60–70':0,'70+':0};
+  pts.forEach(function(p){
+    var a=p.age; if(!a) return;
+    if(a<40) ageBkt['<40']++; else if(a<50) ageBkt['40–50']++;
+    else if(a<60) ageBkt['50–60']++; else if(a<70) ageBkt['60–70']++; else ageBkt['70+']++;
+  });
+  document.getElementById('avg-age-lbl').textContent='Avg age: '+(avgAge?avgAge.toFixed(1):'—');
+
+  renderChart('c-age', {
+    type: 'bar',
+    data: {
+      labels: Object.keys(ageBkt),
+      datasets: [{
+        data: Object.values(ageBkt),
+        backgroundColor: 'rgba(6, 182, 212, 0.65)',
+        borderColor: '#06b6d4',
+        borderWidth: 1,
+        borderRadius: 4,
+        barPercentage: 0.6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0f172a',
+          borderColor: 'rgba(6, 182, 212, 0.2)',
+          borderWidth: 1,
+          titleColor: '#f8fafc',
+          bodyColor: '#cbd5e1',
+          padding: 8,
+          cornerRadius: 6
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: '#64748b', font: { family: "'DM Sans', sans-serif", size: 10 } }
+        },
+        y: {
+          grid: { color: 'rgba(148, 163, 184, 0.08)' },
+          border: { dash: [4, 4] },
+          ticks: { color: '#64748b', precision: 0, font: { family: "'DM Sans', sans-serif", size: 10 } }
+        }
+      }
+    }
+  });
+
+  // ── Diagnosis × Gender grouped bar ──
+  var mTumor =pts.filter(function(p){return (p.gender||'').toLowerCase()==='male'   && p.result==='Tumor Detected';}).length;
+  var fTumor =pts.filter(function(p){return (p.gender||'').toLowerCase()==='female' && p.result==='Tumor Detected';}).length;
+  var mNormal=pts.filter(function(p){return (p.gender||'').toLowerCase()==='male'   && p.result==='Normal';}).length;
+  var fNormal=pts.filter(function(p){return (p.gender||'').toLowerCase()==='female' && p.result==='Normal';}).length;
+  
+  renderChart('c-diag-gender', {
+    type: 'bar',
+    data: {
+      labels: ['Male', 'Female'],
+      datasets: [
+        {
+          label: 'Tumor Detected',
+          data: [mTumor, fTumor],
+          backgroundColor: 'rgba(239, 68, 68, 0.7)',
+          borderColor: '#ef4444',
+          borderWidth: 1,
+          borderRadius: 4,
+          barPercentage: 0.7,
+          categoryPercentage: 0.6
+        },
+        {
+          label: 'Normal',
+          data: [mNormal, fNormal],
+          backgroundColor: 'rgba(16, 185, 129, 0.7)',
+          borderColor: '#10b981',
+          borderWidth: 1,
+          borderRadius: 4,
+          barPercentage: 0.7,
+          categoryPercentage: 0.6
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0f172a',
+          borderColor: 'rgba(59, 130, 246, 0.2)',
+          borderWidth: 1,
+          titleColor: '#f8fafc',
+          bodyColor: '#cbd5e1',
+          padding: 8,
+          cornerRadius: 6
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: '#64748b', font: { family: "'DM Sans', sans-serif", size: 10 } }
+        },
+        y: {
+          grid: { color: 'rgba(148, 163, 184, 0.08)' },
+          border: { dash: [4, 4] },
+          ticks: { color: '#64748b', precision: 0, font: { family: "'DM Sans', sans-serif", size: 10 } }
+        }
+      }
+    }
+  });
+
+  var mini=document.getElementById('diag-gender-mini');
+  mini.innerHTML=[
+    {l:'♂ Tumor',v:mTumor,c:'#f87171'},{l:'♀ Tumor',v:fTumor,c:'#f87171'},
+    {l:'♂ Normal',v:mNormal,c:'#34d399'},{l:'♀ Normal',v:fNormal,c:'#34d399'}
+  ].map(function(x){
+    return '<div style="text-align:center;padding:8px 4px;border-radius:8px;background:rgba(30, 45, 69, 0.3);border:1px solid rgba(59,130,246,.12);">'
+      +'<div style="font-family:\'Space Mono\',monospace;font-size:16px;font-weight:700;color:'+x.c+';">'+x.v+'</div>'
+      +'<div style="font-size:10px;color:var(--text-muted);margin-top:2px;">'+x.l+'</div></div>';
+  }).join('');
+
+  // ── Confidence averages ──
+  var tConfs=tumors.filter(function(p){return p.confidence>0;}).map(function(p){return p.confidence;});
+  var nConfs=normals.filter(function(p){return p.confidence>0;}).map(function(p){return p.confidence;});
+  var confTEl=document.getElementById('conf-tumor'), confNEl=document.getElementById('conf-normal');
+  if(tConfs.length){
+    var tAvg=avg(tConfs);
+    confTEl.textContent='0%';
+    countUp(confTEl, tAvg, 900, 1, '%');
+  } else confTEl.textContent='—';
+  if(nConfs.length){
+    var nAvg=avg(nConfs);
+    confNEl.textContent='0%';
+    countUp(confNEl, nAvg, 900, 1, '%');
+  } else confNEl.textContent='—';
+
+  // ── Risk cards ──
+  var rH=pts.filter(function(p){return (p.risk||'').toUpperCase()==='HIGH';}).length;
+  var rM=pts.filter(function(p){return (p.risk||'').toUpperCase()==='MEDIUM';}).length;
+  var rL=pts.filter(function(p){return (p.risk||'').toUpperCase()==='LOW';}).length;
+  countUp(document.getElementById('risk-high'), rH, 800);
+  setTimeout(function(){ countUp(document.getElementById('risk-med'),  rM, 800); }, 100);
+  setTimeout(function(){ countUp(document.getElementById('risk-low'),  rL, 800); }, 200);
+  setTimeout(glowRiskCards, 900);
+
+  // ── Smoking hbars (staggered) ──
+  var smokeColors={'Current Smoker':'#ef4444','Former Smoker':'#f59e0b','Never Smoked':'#10b981','Passive Smoker':'#06b6d4'};
+  renderHBars('smoking-hbars',
+    smokeCats.map(function(s){return {l:s,v:pts.filter(function(p){return p.smoking===s;}).length};}),
+    function(r){ return smokeColors[r.l]||'#3b82f6'; }, 100);
+
+  // ── Smoking × Diagnosis (grouped bar) ──
+  var shortCats=['Current','Former','Never','Passive'];
+  var smokeTumorVals = smokeCats.map(function(s){return pts.filter(function(p){return p.smoking===s&&p.result==='Tumor Detected';}).length;});
+  var smokeNormalVals = smokeCats.map(function(s){return pts.filter(function(p){return p.smoking===s&&p.result==='Normal';}).length;});
+  
+  renderChart('c-smoking-diag', {
+    type: 'bar',
+    data: {
+      labels: shortCats,
+      datasets: [
+        {
+          label: 'Tumor Detected',
+          data: smokeTumorVals,
+          backgroundColor: 'rgba(239, 68, 68, 0.7)',
+          borderColor: '#ef4444',
+          borderWidth: 1,
+          borderRadius: 4,
+          barPercentage: 0.7,
+          categoryPercentage: 0.6
+        },
+        {
+          label: 'Normal',
+          data: smokeNormalVals,
+          backgroundColor: 'rgba(16, 185, 129, 0.7)',
+          borderColor: '#10b981',
+          borderWidth: 1,
+          borderRadius: 4,
+          barPercentage: 0.7,
+          categoryPercentage: 0.6
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0f172a',
+          borderColor: 'rgba(59, 130, 246, 0.2)',
+          borderWidth: 1,
+          titleColor: '#f8fafc',
+          bodyColor: '#cbd5e1',
+          padding: 8,
+          cornerRadius: 6
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: '#64748b', font: { family: "'DM Sans', sans-serif", size: 10 } }
+        },
+        y: {
+          grid: { color: 'rgba(148, 163, 184, 0.08)' },
+          border: { dash: [4, 4] },
+          ticks: { color: '#64748b', precision: 0, font: { family: "'DM Sans', sans-serif", size: 10 } }
+        }
+      }
+    }
+  });
+
+  // ── Highlight cards (pop in) ──
+  countUp(document.getElementById('hl-never-tumor'),
+    pts.filter(function(p){return p.smoking==='Never Smoked'&&p.result==='Tumor Detected';}).length, 800);
+  countUp(document.getElementById('hl-age50-tumor'),
+    pts.filter(function(p){return p.age>=50&&p.result==='Tumor Detected';}).length, 800);
+  countUp(document.getElementById('hl-smoker-tumor'),
+    pts.filter(function(p){return p.smoking==='Current Smoker'&&p.result==='Tumor Detected';}).length, 800);
+  setTimeout(popHighlightCards, 200);
+
+  // ── Trend chart (animated line draw) ──
+  drawTrend(pts);
+
+  // ── Scan type donut ──
+  var stypes={};
+  pts.forEach(function(p){ var s=p.scan_type||'Unknown'; stypes[s]=(stypes[s]||0)+1; });
+  var stColors=['#3b82f6','#06b6d4','#8b5cf6','#f59e0b','#10b981'];
+  var stData=Object.keys(stypes).map(function(k){return {l:k,v:stypes[k]};});
+  
+  renderHtmlLegend('leg-scantype', stData, stColors.slice(0,stData.length), total);
+
+  renderChart('c-scantype', {
+    type: 'doughnut',
+    data: {
+      labels: stData.map(function(d){ return d.l; }),
+      datasets: [{
+        data: stData.map(function(d){ return d.v; }),
+        backgroundColor: stColors.slice(0, stData.length),
+        borderWidth: 0,
+        hoverOffset: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '72%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0f172a',
+          borderColor: 'rgba(59, 130, 246, 0.2)',
+          borderWidth: 1,
+          titleColor: '#f8fafc',
+          bodyColor: '#cbd5e1',
+          padding: 8,
+          cornerRadius: 6
+        }
+      }
+    }
+  });
+
+  // ── Lung-RADS (animated hbars) ──
+  var lrC={'1':0,'2':0,'3':0,'4A':0,'4B':0};
+  pts.forEach(function(p){ lrC[deriveLR(p)]++; });
+  var lrColors={'1':'#10b981','2':'#10b981','3':'#f59e0b','4A':'#ef4444','4B':'#dc2626'};
+  var lrMax=Math.max.apply(null,Object.values(lrC))||1;
+  var lrHtml='';
+  Object.keys(lrC).forEach(function(cat){
+    var p2=((lrC[cat]/lrMax)*100).toFixed(0), clr=lrColors[cat];
+    lrHtml+='<div class="lr-row">'
+      +'<div class="lr-badge" style="background:rgba(30, 45, 69, 0.3);border:1px solid '+clr+';color:'+clr+';">'+cat+'</div>'
+      +'<div class="lr-track"><div class="lr-fill" style="background:'+clr+';" data-p="'+p2+'"></div></div>'
+      +'<div class="lr-count">'+lrC[cat]+'</div></div>';
+  });
+  document.getElementById('lr-bars').innerHTML=lrHtml;
+  setTimeout(function(){
+    document.getElementById('lr-bars').querySelectorAll('.lr-fill').forEach(function(el,i){
+      setTimeout(function(){ el.style.width=el.getAttribute('data-p')+'%'; }, i*100);
+    });
+  }, 150);
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  // Init scroll observer for reveal animations
+  initObserver();
+
+  // Initial render
+  renderAll(ALL_PATIENTS);
+});
+
+// ══════════════════════════════════════════════════════
+// INSIGHT PANEL ENGINE
+// ══════════════════════════════════════════════════════
+var CURRENT_PTS = [];
+
+function _pct(n,t){ return t ? ((n/t)*100).toFixed(1)+'%' : '0%'; }
+function _pctN(n,t){ return t ? +((n/t)*100).toFixed(1) : 0; }
+function _avg(arr){ return arr.length ? arr.reduce(function(a,b){return a+b;},0)/arr.length : 0; }
+
+function ipStatRow(label,val,color){
+  return '<div class="ip-stat-row"><span class="ip-stat-label">'+label+'</span>'
+        +'<span class="ip-stat-val" style="color:'+(color||'#f0f4ff')+';">'+val+'</span></div>';
+}
+function ipInsight(type,icon,label,text){
+  return '<div class="ip-insight '+type+'">'
+        +'<div class="ip-insight-icon">'+icon+'</div>'
+        +'<div><div class="ip-insight-label">'+label+'</div>'
+        +'<div class="ip-insight-text">'+text+'</div></div></div>';
+}
+function ipRec(num,text){
+  return '<div class="ip-rec"><div class="ip-rec-num">'+num+'</div><div>'+text+'</div></div>';
+}
+function ipSection(title,html){
+  return '<div class="ip-section"><div class="ip-section-title">'+title+'</div>'+html+'</div>';
+}
+
+function buildInsightData(key, pts){
+  var n=pts.length;
+  if(!n) return {badge:'📊 No Data',badgeColor:'rgba(71,85,105,.3)',badgeTxt:'#475569',
+    title:'No patients in range',sub:'Try a different time filter',
+    body:'<div style="text-align:center;padding:48px 20px;color:#475569;font-size:13px;">No data available for this time range.</div>'};
+
+  var tumors  = pts.filter(function(p){return p.result==='Tumor Detected';});
+  var normals = pts.filter(function(p){return p.result==='Normal';});
+  var nT=tumors.length, nN=normals.length;
+  var males   = pts.filter(function(p){return (p.gender||'').toLowerCase()==='male';});
+  var females = pts.filter(function(p){return (p.gender||'').toLowerCase()==='female';});
+  var ages    = pts.filter(function(p){return p.age>0;}).map(function(p){return p.age;});
+  var tConfs  = tumors.filter(function(p){return p.confidence>0;}).map(function(p){return p.confidence;});
+  var nConfs  = normals.filter(function(p){return p.confidence>0;}).map(function(p){return p.confidence;});
+  var allConfs= pts.filter(function(p){return p.confidence>0;}).map(function(p){return p.confidence;});
+  var avgAge  = ages.length ? _avg(ages).toFixed(1) : '—';
+  var avgTConf= tConfs.length ? _avg(tConfs).toFixed(1) : '—';
+  var avgNConf= nConfs.length ? _avg(nConfs).toFixed(1) : '—';
+  var avgConf = allConfs.length ? _avg(allConfs).toFixed(1) : '—';
+  var rH=pts.filter(function(p){return (p.risk||'').toUpperCase()==='HIGH';}).length;
+  var rM=pts.filter(function(p){return (p.risk||'').toUpperCase()==='MEDIUM';}).length;
+  var rL=pts.filter(function(p){return (p.risk||'').toUpperCase()==='LOW';}).length;
+  var curSmoke=pts.filter(function(p){return p.smoking==='Current Smoker';}).length;
+  var fmrSmoke=pts.filter(function(p){return p.smoking==='Former Smoker';}).length;
+  var nevSmoke=pts.filter(function(p){return p.smoking==='Never Smoked';}).length;
+  var pasSmoke=pts.filter(function(p){return p.smoking==='Passive Smoker';}).length;
+  var curTumor=pts.filter(function(p){return p.smoking==='Current Smoker'&&p.result==='Tumor Detected';}).length;
+  var nevTumor=pts.filter(function(p){return p.smoking==='Never Smoked'&&p.result==='Tumor Detected';}).length;
+  var age50T  =pts.filter(function(p){return p.age>=50&&p.result==='Tumor Detected';}).length;
+  var tumorPct=_pctN(nT,n);
+  var mT=males.filter(function(p){return p.result==='Tumor Detected';}).length;
+  var fT=females.filter(function(p){return p.result==='Tumor Detected';}).length;
+
+  var M = {
+
+    total:{
+      badge:'👥 Patient Overview', badgeColor:'rgba(37,99,235,.25)', badgeTxt:'#93c5fd',
+      title:'Total Patients — '+n+' Records', sub:'Complete cohort overview',
+      body:
+        ipSection('Key Numbers',
+          ipStatRow('Total Scans',n,'#93c5fd')+
+          ipStatRow('Tumor Detected',nT+' ('+_pct(nT,n)+')','#f87171')+
+          ipStatRow('Normal',nN+' ('+_pct(nN,n)+')','#34d399')+
+          ipStatRow('Average Age',avgAge+' yrs','#fbbf24')+
+          ipStatRow('Avg AI Confidence',avgConf+'%','#22d3ee')+
+          ipStatRow('High Risk Patients',rH+' ('+_pct(rH,n)+')','#c4b5fd')
+        )+
+        ipSection('Clinical Insights',
+          (tumorPct>50
+            ? ipInsight('critical','🚨','High Tumor Rate','<strong>'+_pct(nT,n)+'</strong> of scanned patients are Tumor Detected — well above the general population baseline of ~12%. Review referral sources and screening criteria.')
+            : ipInsight('positive','✅','Healthy Cohort Majority','<strong>'+_pct(nN,n)+'</strong> of patients show normal results. Your screening programme is identifying predominantly low-risk individuals.'))+
+          (rH>0 ? ipInsight('critical','⚠️','Immediate Follow-ups Required','<strong>'+rH+' HIGH RISK patient'+(rH>1?'s':'')+' ('+_pct(rH,n)+')</strong> need urgent specialist referral. Do not delay.') : '')+
+          ipInsight('info','📊','Cohort Size Note','With <strong>'+n+' records</strong>, insights are '+(n>=20?'statistically meaningful.':'still building — add more scans for reliable trends.'))
+        )+
+        ipSection('Recommended Actions',
+          '<div class="ip-rec-list">'+
+          ipRec(1,'Review all HIGH RISK patients and schedule specialist consultations.')+
+          ipRec(2,'Ensure every Tumor Detected case has a documented follow-up plan.')+
+          ipRec(3,'Maintain scan frequency to support reliable longitudinal trend analysis.')+
+          '</div>')
+    },
+
+    tumor:{
+      badge:'🎗️ Tumor Detected', badgeColor:'rgba(239,68,68,.2)', badgeTxt:'#f87171',
+      title:nT+' Tumor Cases — '+_pct(nT,n)+' Rate', sub:'Deep dive into malignancy findings',
+      body:
+        ipSection('Tumor Statistics',
+          ipStatRow('Total Tumor Cases',nT,'#f87171')+
+          ipStatRow('Detection Rate',_pct(nT,n),'#f87171')+
+          ipStatRow('Avg AI Confidence',avgTConf+'%','#fbbf24')+
+          ipStatRow('High Risk Among Tumors',pts.filter(function(p){return p.result==='Tumor Detected'&&(p.risk||'').toUpperCase()==='HIGH';}).length,'#f87171')+
+          ipStatRow('Tumors in Smokers',curTumor,'#f87171')+
+          ipStatRow('Tumors in Age 50+',age50T,'#fbbf24')
+        )+
+        ipSection('Clinical Insights',
+          (tumorPct>60
+            ? ipInsight('critical','🚨','Very High Detection Rate','<strong>'+_pct(nT,n)+'</strong> tumor rate is clinically alarming. Ensure all cases have urgent specialist review and biopsy staging initiated immediately.')
+            : tumorPct>30
+              ? ipInsight('warning','⚠️','Elevated Detection Rate','A <strong>'+_pct(nT,n)+'</strong> rate suggests a high-risk referral base. Prioritise biopsy scheduling and PET-CT follow-up.')
+              : ipInsight('info','📈','Moderate Detection Rate','At <strong>'+_pct(nT,n)+'</strong>, your rate is typical for specialist clinics with pre-screened referrals.'))+
+          (parseFloat(avgTConf)>=90
+            ? ipInsight('critical','🔬','Very High AI Confidence','Average confidence of <strong>'+avgTConf+'%</strong> on tumors — strong malignancy patterns detected. Biopsy confirmation is strongly indicated for all cases.')
+            : ipInsight('warning','🔬','Moderate AI Confidence','Average confidence <strong>'+avgTConf+'%</strong>. Cases below 85% still require full clinical workup regardless of AI certainty.'))+
+          (nevTumor>0
+            ? ipInsight('critical','❓','Non-Smoker Tumors','<strong>'+nevTumor+' never-smoker'+( nevTumor>1?'s have':' has')+' Tumor Detected</strong>. Consider genetic risk factors, radon, environmental carcinogens. Full exposure history essential.')
+            : ipInsight('positive','✅','All Tumors in Risk Patients','All tumor cases are in patients with known risk factors — expected clinical pattern.'))
+        )+
+        ipSection('Recommended Actions',
+          '<div class="ip-rec-list">'+
+          ipRec(1,'Refer all '+nT+' tumor cases for immediate oncology/pulmonology consultation.')+
+          ipRec(2,'Order PET-CT or tissue biopsy for Lung-RADS 4A/4B cases.')+
+          ipRec(3,'Initiate staging workup: CBC, CMP, LDH, CEA, coagulation panel.')+
+          '</div>')
+    },
+
+    normal:{
+      badge:'✅ Normal Results', badgeColor:'rgba(16,185,129,.15)', badgeTxt:'#34d399',
+      title:nN+' Normal Cases — '+_pct(nN,n)+' of Cohort', sub:'Analysis of clear scan findings',
+      body:
+        ipSection('Normal Case Statistics',
+          ipStatRow('Total Normal Cases',nN,'#34d399')+
+          ipStatRow('Proportion of Cohort',_pct(nN,n),'#34d399')+
+          ipStatRow('Avg AI Confidence',avgNConf+'%','#22d3ee')+
+          ipStatRow('Never Smokers (Normal)',normals.filter(function(p){return p.smoking==='Never Smoked';}).length,'#34d399')+
+          ipStatRow('Low Risk Count',normals.filter(function(p){return (p.risk||'').toUpperCase()==='LOW';}).length,'#34d399')
+        )+
+        ipSection('Clinical Insights',
+          ipInsight('positive','✅','Normal — But Not Discharged','<strong>'+nN+' patients ('+_pct(nN,n)+')</strong> show no malignancy. However, a normal scan does not remove future risk — annual LDCT must continue per USPSTF guidelines.')+
+          (parseFloat(avgNConf)>=90
+            ? ipInsight('positive','🤖','High Confidence Negatives','AI confidence of <strong>'+avgNConf+'%</strong> on normal cases — false negatives are unlikely at this certainty level.')
+            : ipInsight('warning','🤖','Moderate Confidence Negatives','Normal case confidence at <strong>'+avgNConf+'%</strong>. Cases below 85% should have repeat imaging in 3–6 months to confirm.'))+
+          ipInsight('info','📅','Follow-up Is Mandatory','Current smokers, patients aged 50+, and those with family history of lung cancer must not skip annual LDCT even when scans are normal.')
+        )+
+        ipSection('Recommended Actions',
+          '<div class="ip-rec-list">'+
+          ipRec(1,'Schedule all '+nN+' normal patients for annual LDCT follow-up.')+
+          ipRec(2,'Counsel current smokers — a normal scan today does not eliminate future risk.')+
+          ipRec(3,'Document family history and occupational exposures for all normal cases.')+
+          '</div>')
+    },
+
+    age:{
+      badge:'📅 Age KPI', badgeColor:'rgba(245,158,11,.15)', badgeTxt:'#fbbf24',
+      title:'Average Age — '+avgAge+' Years', sub:'Age demographics and risk stratification',
+      body:
+        ipSection('Age Statistics',
+          ipStatRow('Average Age',avgAge+' yrs','#fbbf24')+
+          ipStatRow('Min Age',(ages.length?Math.min.apply(null,ages):'-')+' yrs','#94a3b8')+
+          ipStatRow('Max Age',(ages.length?Math.max.apply(null,ages):'-')+' yrs','#94a3b8')+
+          ipStatRow('Age ≥50 (High Risk)',pts.filter(function(p){return p.age>=50;}).length+' ('+_pct(pts.filter(function(p){return p.age>=50;}).length,n)+')','#f87171')+
+          ipStatRow('Age ≥50 + Tumor',age50T,'#f87171')+
+          ipStatRow('Age <40',pts.filter(function(p){return p.age<40;}).length,'#34d399')
+        )+
+        ipSection('Clinical Insights',
+          (parseFloat(avgAge)>=55
+            ? ipInsight('critical','👴','Peak Risk Age Group','Average age <strong>'+avgAge+'</strong> sits within the highest lung cancer risk bracket (55–80). All patients here should follow USPSTF annual LDCT guidelines.')
+            : ipInsight('info','📅','Moderate Age Profile','Average age of <strong>'+avgAge+'</strong> is below the highest-risk bracket, but consistent screening and risk factor monitoring remain essential.'))+
+          (age50T>0
+            ? ipInsight('warning','⚠️','Age + Tumor Overlap','<strong>'+age50T+' patients aged 50+ have confirmed tumors</strong>. Older patients face higher malignancy risk and reduced treatment tolerance — expedite geriatric oncology assessment.')
+            : ipInsight('positive','✅','No High-Age Tumor Burden','Currently no tumors in the 50+ age group — a positive indicator.'))+
+          ipInsight('info','🧬','Age as Risk Factor','Lung cancer risk roughly doubles each decade after age 50. Even without smoking history, patients aged 50–80 qualify for annual screening.')
+        )+
+        ipSection('Recommended Actions',
+          '<div class="ip-rec-list">'+
+          ipRec(1,'Enrol all patients aged 50–80 in annual LDCT screening programmes.')+
+          ipRec(2,'For tumors in patients 65+, order geriatric assessment before treatment.')+
+          ipRec(3,'Younger patients (<40) with tumors require genetic counselling.')+
+          '</div>')
+    },
+
+    confidence:{
+      badge:'🤖 AI Confidence', badgeColor:'rgba(6,182,212,.15)', badgeTxt:'#22d3ee',
+      title:'Avg Confidence — '+avgConf+'%', sub:'Model certainty analysis across all cases',
+      body:
+        ipSection('Confidence Statistics',
+          ipStatRow('Overall Avg',avgConf+'%','#22d3ee')+
+          ipStatRow('Tumor Avg',avgTConf+'%','#f87171')+
+          ipStatRow('Normal Avg',avgNConf+'%','#34d399')+
+          ipStatRow('Very High (≥92%)',allConfs.filter(function(c){return c>=92;}).length,'#22d3ee')+
+          ipStatRow('High (82–92%)',allConfs.filter(function(c){return c>=82&&c<92;}).length,'#3b82f6')+
+          ipStatRow('Moderate (<82%)',allConfs.filter(function(c){return c<82;}).length,'#fbbf24')
+        )+
+        ipSection('Clinical Insights',
+          (parseFloat(avgConf)>=90
+            ? ipInsight('positive','🎯','Excellent Model Performance','Average confidence of <strong>'+avgConf+'%</strong> indicates the AI is highly certain. Cases at this level have very low false-positive/negative rates.')
+            : ipInsight('warning','⚠️','Moderate Confidence — Verify','Average confidence <strong>'+avgConf+'%</strong>. Cases below 85% should receive additional clinical correlation regardless of result.'))+
+          ipInsight('info','🔬','What Confidence Means','AI confidence reflects pattern similarity to training data — it is <strong>not a diagnostic probability</strong>. Always correlate with clinical findings, symptoms, and history.')+
+          (parseFloat(avgTConf)-parseFloat(avgNConf)>10
+            ? ipInsight('positive','📊','Strong Class Separation','Tumor avg <strong>'+avgTConf+'%</strong> vs Normal <strong>'+avgNConf+'%</strong> — a clear separation, indicating reliable class distinction.')
+            : ipInsight('warning','📊','Similar Confidence Levels','Tumor and Normal confidence scores are close. Borderline cases in your cohort warrant extra clinical scrutiny.'))
+        )+
+        ipSection('Recommended Actions',
+          '<div class="ip-rec-list">'+
+          ipRec(1,'Always correlate AI confidence with patient symptoms and clinical history.')+
+          ipRec(2,'Cases with confidence 70–85% (any result): priority radiologist review.')+
+          ipRec(3,'High confidence Tumor (≥92%): immediately proceed to biopsy staging.')+
+          '</div>')
+    },
+
+    risk:{
+      badge:'⚠️ Risk Distribution', badgeColor:'rgba(139,92,246,.15)', badgeTxt:'#c4b5fd',
+      title:'Risk Levels — '+rH+' High, '+rM+' Med, '+rL+' Low', sub:'Patient risk stratification breakdown',
+      body:
+        ipSection('Risk Counts',
+          ipStatRow('🔴 High Risk',rH+' ('+_pct(rH,n)+')','#f87171')+
+          ipStatRow('🟡 Medium Risk',rM+' ('+_pct(rM,n)+')','#fbbf24')+
+          ipStatRow('🟢 Low Risk',rL+' ('+_pct(rL,n)+')','#34d399')+
+          ipStatRow('High Risk + Smoker',pts.filter(function(p){return (p.risk||'').toUpperCase()==='HIGH'&&p.smoking==='Current Smoker';}).length,'#f87171')+
+          ipStatRow('High Risk + Age 50+',pts.filter(function(p){return (p.risk||'').toUpperCase()==='HIGH'&&p.age>=50;}).length,'#f87171')
+        )+
+        ipSection('Clinical Insights',
+          (rH>0
+            ? ipInsight('critical','🔴','Immediate Action Required','<strong>'+rH+' HIGH RISK patient'+(rH>1?'s':'')+' ('+_pct(rH,n)+')</strong> — Tumor Detected with ≥85% confidence. Immediate specialist referral and Lung-RADS 4A/4B workup required. Do not delay.')
+            : ipInsight('positive','✅','No High Risk Cases','No HIGH RISK patients in the current view. Continue regular screening.'))+
+          (rM>0
+            ? ipInsight('warning','🟡','Medium Risk Monitoring','<strong>'+rM+' medium-risk patient'+(rM>1?'s':'')+' (Tumor <85% confidence)</strong> — short-term follow-up CT in 3–6 months recommended. These cases can escalate.')
+            : '')+
+          ipInsight('info','📋','Risk Classification Logic','HIGH: Tumor + confidence ≥85%. MEDIUM: Tumor + confidence <85%. LOW: Normal result. Risk level drives urgency of clinical follow-up.')
+        )+
+        ipSection('Recommended Actions',
+          '<div class="ip-rec-list">'+
+          ipRec(1,'All '+rH+' HIGH RISK patients: oncology referral within 48 hours.')+
+          ipRec(2,'All '+rM+' MEDIUM RISK patients: follow-up CT scan within 3 months.')+
+          ipRec(3,'Document risk escalation plans in each patient\'s clinical notes.')+
+          '</div>')
+    },
+
+    gender:{
+      badge:'👥 Gender Split', badgeColor:'rgba(59,130,246,.15)', badgeTxt:'#93c5fd',
+      title:'Gender — '+males.length+' Male / '+females.length+' Female', sub:'Male vs Female patient breakdown and tumor rates',
+      body:
+        ipSection('Gender Statistics',
+          ipStatRow('Male Patients',males.length+' ('+_pct(males.length,n)+')','#3b82f6')+
+          ipStatRow('Female Patients',females.length+' ('+_pct(females.length,n)+')','#ec4899')+
+          ipStatRow('Male Tumor Rate',_pct(mT,males.length),'#f87171')+
+          ipStatRow('Female Tumor Rate',_pct(fT,females.length),'#f87171')+
+          ipStatRow('Male Tumor Count',mT,'#f87171')+
+          ipStatRow('Female Tumor Count',fT,'#f87171')
+        )+
+        ipSection('Clinical Insights',
+          (males.length>females.length*2
+            ? ipInsight('warning','⚖️','Male-Dominated Cohort','Cohort is <strong>'+_pct(males.length,n)+' male</strong>. Ensure female patients are not under-referred — lung cancer increasingly affects women, especially non-smokers.')
+            : females.length>males.length*2
+              ? ipInsight('info','⚖️','Female-Dominated Cohort','Cohort is <strong>'+_pct(females.length,n)+' female</strong>. Female non-smoker lung cancer rates are rising globally — maintain vigilance for adenocarcinoma.')
+              : ipInsight('positive','⚖️','Balanced Gender Distribution','A reasonably balanced gender split suggests unbiased referral patterns. Both sexes are being screened appropriately.'))+
+          ipInsight('info','🧬','Gender & Lung Cancer','Female non-smokers develop lung cancer at higher rates than male non-smokers, likely due to hormonal and genetic differences. Gender-specific risk profiles should inform counselling.')
+        )+
+        ipSection('Recommended Actions',
+          '<div class="ip-rec-list">'+
+          ipRec(1,'Ensure equal screening access regardless of gender — avoid referral bias.')+
+          ipRec(2,'Counsel female non-smokers: adenocarcinoma risk exists independent of smoking.')+
+          ipRec(3,'Track gender-specific tumor rates over time to identify emerging patterns.')+
+          '</div>')
+    },
+
+    diagnosis:{
+      badge:'🎗️ Diagnosis Split', badgeColor:'rgba(239,68,68,.15)', badgeTxt:'#f87171',
+      title:'Tumor '+nT+' vs Normal '+nN, sub:'Overall diagnostic outcome breakdown',
+      body:
+        ipSection('Diagnosis Summary',
+          ipStatRow('Tumor Detected',nT+' ('+_pct(nT,n)+')','#f87171')+
+          ipStatRow('Normal',nN+' ('+_pct(nN,n)+')','#34d399')+
+          ipStatRow('High Risk Tumors',rH,'#f87171')+
+          ipStatRow('Medium Risk Tumors',rM,'#fbbf24')+
+          ipStatRow('Overall Avg Confidence',avgConf+'%','#22d3ee')
+        )+
+        ipSection('Clinical Insights',
+          (tumorPct>50
+            ? ipInsight('critical','🚨','Majority Tumor Positive','<strong>'+_pct(nT,n)+'</strong> of all scans are Tumor Detected. This is significantly elevated — review whether screening criteria are drawing in predominantly symptomatic patients.')
+            : ipInsight('info','📊','Mixed Diagnostic Outcomes','<strong>'+_pct(nT,n)+'</strong> tumor rate and <strong>'+_pct(nN,n)+'</strong> normal is typical for a mixed screening and symptomatic referral population.'))+
+          ipInsight('info','🔬','AI is Screening, Not Diagnostic','A Tumor Detected result requires histopathological biopsy confirmation before any treatment decision. AI identifies patterns — pathology confirms diagnosis.')
+        )+
+        ipSection('Recommended Actions',
+          '<div class="ip-rec-list">'+
+          ipRec(1,'Every Tumor Detected case must have a documented specialist pathway.')+
+          ipRec(2,'Normal cases should not be discharged — annual LDCT follow-up is mandatory.')+
+          ipRec(3,'Correlate AI predictions with biopsy outcomes to audit model accuracy over time.')+
+          '</div>')
+    },
+
+    age_dist:{
+      badge:'📅 Age Groups', badgeColor:'rgba(245,158,11,.15)', badgeTxt:'#fbbf24',
+      title:'Age Distribution Breakdown', sub:'Patient counts and tumor rates per age bracket',
+      body:
+        ipSection('Age Group Breakdown',
+          [['<40',0,40],['40–50',40,50],['50–60',50,60],['60–70',60,70],['70+',70,999]].map(function(g){
+            var cnt=ages.filter(function(a){return a>=g[1]&&a<g[2];}).length;
+            var t=tumors.filter(function(p){return p.age>=g[1]&&p.age<g[2];}).length;
+            return ipStatRow(g[0]+' yrs',cnt+' pts · '+t+' tumor','#fbbf24');
+          }).join('')+
+          ipStatRow('Average Age',avgAge+' yrs','#fbbf24')
+        )+
+        ipSection('Clinical Insights',
+          ipInsight('info','📈','Age & Risk','Lung cancer incidence rises sharply after 50. The 60–70 age group carries the highest incidence rate globally. Your cohort average age is <strong>'+avgAge+' years</strong>.')+
+          (age50T>0
+            ? ipInsight('warning','👴','Tumors in 50+ Bracket','<strong>'+age50T+' patients aged 50+</strong> have confirmed tumors. Geriatric oncology evaluation and assessment of treatment tolerance is essential.')
+            : ipInsight('positive','✅','No High-Age Tumor Burden','No tumors in the elderly bracket currently — maintain monitoring.'))
+        )+
+        ipSection('Recommended Actions',
+          '<div class="ip-rec-list">'+
+          ipRec(1,'All patients 50–80 should be on annual LDCT screening.')+
+          ipRec(2,'Patients 65+ with tumors: pre-treatment geriatric functional assessment.')+
+          ipRec(3,'Patients <40 with tumors: arrange genetic counselling.')+
+          '</div>')
+    },
+
+    diag_gender:{
+      badge:'🎗️ Diagnosis × Gender', badgeColor:'rgba(139,92,246,.15)', badgeTxt:'#c4b5fd',
+      title:'How Gender Affects Diagnosis', sub:'Tumor/Normal rates split by sex',
+      body:
+        ipSection('Cross-Tab: Gender × Diagnosis',
+          ipStatRow('Male Total',males.length,'#3b82f6')+
+          ipStatRow('Male Tumor',mT+' ('+_pct(mT,males.length)+')','#f87171')+
+          ipStatRow('Male Normal',(males.length-mT),'#34d399')+
+          ipStatRow('Female Total',females.length,'#ec4899')+
+          ipStatRow('Female Tumor',fT+' ('+_pct(fT,females.length)+')','#f87171')+
+          ipStatRow('Female Normal',(females.length-fT),'#34d399')
+        )+
+        ipSection('Clinical Insights',
+          ipInsight('info','🧬','Interpreting Gender × Diagnosis','Male tumor rate: <strong>'+_pct(mT,males.length)+'</strong> · Female rate: <strong>'+_pct(fT,females.length)+'</strong>. '+(parseFloat(_pct(mT,males.length))>parseFloat(_pct(fT,females.length))?'Males show higher rates — consistent with global trends.':'Female tumor rate is elevated. Consider adenocarcinoma screening in non-smoking women.'))+
+          ipInsight('info','📊','Why This Matters','Gender × Diagnosis cross-tabulation identifies potential referral bias and genuine population-level risk differences. Large discrepancies warrant investigation.')
+        )+
+        ipSection('Recommended Actions',
+          '<div class="ip-rec-list">'+
+          ipRec(1,'Investigate if one gender is under-referred and correct the imbalance.')+
+          ipRec(2,'Female non-smokers with tumor: order EGFR/ALK molecular testing.')+
+          ipRec(3,'Track this ratio over time — shifts may signal population-level changes.')+
+          '</div>')
+    },
+
+    confidence_risk:{
+      badge:'🤖 Confidence & Risk', badgeColor:'rgba(6,182,212,.15)', badgeTxt:'#22d3ee',
+      title:'AI Confidence + Risk Combined', sub:'Model certainty and clinical risk together',
+      body:
+        ipSection('Combined Statistics',
+          ipStatRow('Tumor Avg Confidence',avgTConf+'%','#f87171')+
+          ipStatRow('Normal Avg Confidence',avgNConf+'%','#34d399')+
+          ipStatRow('🔴 High Risk',rH,'#f87171')+
+          ipStatRow('🟡 Medium Risk',rM,'#fbbf24')+
+          ipStatRow('🟢 Low Risk',rL,'#34d399')
+        )+
+        ipSection('Clinical Insights',
+          ipInsight('info','🤖','How Risk Is Calculated','Risk combines prediction + confidence. HIGH: Tumor + ≥85% confidence. MEDIUM: Tumor + <85%. LOW: Normal result. <strong>Both metrics matter</strong> — low-confidence tumor still needs follow-up.')+
+          (rH>0
+            ? ipInsight('critical','🔴','Urgent Cases Present','<strong>'+rH+' HIGH RISK case'+(rH>1?'s':'')+' require immediate action</strong> — biopsy referral and urgent staging workup should begin immediately.')
+            : ipInsight('positive','✅','No Immediate High Risk Cases','No HIGH RISK patients currently.'))+
+          (rM>0
+            ? ipInsight('warning','🟡','Monitor Medium Risk','<strong>'+rM+' MEDIUM RISK case'+(rM>1?'s':'')+' </strong> — joint radiologist-clinician review before biopsy vs watchful waiting decision.')
+            : '')
+        )+
+        ipSection('Recommended Actions',
+          '<div class="ip-rec-list">'+
+          ipRec(1,'Sort patient list by confidence score descending — address highest first.')+
+          ipRec(2,'Medium risk: joint radiologist-clinician review before deciding on biopsy.')+
+          ipRec(3,'Re-test medium-risk cases in 3 months to check if confidence changes.')+
+          '</div>')
+    },
+
+    smoking:{
+      badge:'🚬 Smoking Status', badgeColor:'rgba(239,68,68,.15)', badgeTxt:'#f87171',
+      title:'Smoking Profile of Your Patients', sub:'Distribution and impact on cancer risk',
+      body:
+        ipSection('Smoking Breakdown',
+          ipStatRow('Current Smokers',curSmoke+' ('+_pct(curSmoke,n)+')','#ef4444')+
+          ipStatRow('Former Smokers',fmrSmoke+' ('+_pct(fmrSmoke,n)+')','#f59e0b')+
+          ipStatRow('Never Smoked',nevSmoke+' ('+_pct(nevSmoke,n)+')','#10b981')+
+          ipStatRow('Passive Smokers',pasSmoke+' ('+_pct(pasSmoke,n)+')','#06b6d4')+
+          ipStatRow('Smoker Tumor Rate',_pct(curTumor,curSmoke),'#f87171')+
+          ipStatRow('Non-Smoker Tumor Rate',_pct(nevTumor,nevSmoke),'#fbbf24')
+        )+
+        ipSection('Clinical Insights',
+          (curSmoke>0
+            ? ipInsight('critical','🚬','Active Smokers Present','<strong>'+curSmoke+' current smoker'+(curSmoke>1?'s':'')+' ('+_pct(curSmoke,n)+')</strong> — smoking causes ~85% of all lung cancers. All should be enrolled in cessation programmes immediately, regardless of scan result.')
+            : ipInsight('positive','✅','No Current Smokers','No current smokers in this cohort — excellent. Reflects effective preventive counselling.'))+
+          (nevTumor>0
+            ? ipInsight('warning','❓','Tumors in Non-Smokers','<strong>'+nevTumor+' never-smoker'+( nevTumor>1?'s have':' has')+' Tumor Detected</strong>. Investigate EGFR/ALK mutations, radon exposure, secondhand smoke, air pollution.')
+            : ipInsight('positive','✅','No Non-Smoker Tumors','All tumor cases are in patients with known smoking exposure — consistent with expected risk patterns.'))+
+          ipInsight('info','💊','Cessation Impact','Quitting reduces lung cancer risk 30–50% within 10 years. Ex-smokers maintain elevated risk for 10–15 years post-cessation. Annual LDCT still recommended for ex-smokers aged 50–80 with ≥20 pack-year history.')
+        )+
+        ipSection('Recommended Actions',
+          '<div class="ip-rec-list">'+
+          ipRec(1,'Refer all '+curSmoke+' current smokers to cessation programmes — prescribe NRT or varenicline.')+
+          ipRec(2,'Non-smoker tumors: order EGFR, ALK, ROS1 molecular testing.')+
+          ipRec(3,'Document pack-year history for all current and former smokers.')+
+          '</div>')
+    },
+
+    smoking_diag:{
+      badge:'🚬 Smoking × Cancer', badgeColor:'rgba(239,68,68,.15)', badgeTxt:'#f87171',
+      title:'Smoking Impact on Diagnosis', sub:'Tumor rates broken down by smoking history',
+      body:
+        ipSection('Smoking vs Diagnosis',
+          [['Current Smoker',curSmoke],['Former Smoker',fmrSmoke],['Never Smoked',nevSmoke],['Passive Smoker',pasSmoke]].map(function(s){
+            var t=pts.filter(function(p){return p.smoking===s[0]&&p.result==='Tumor Detected';}).length;
+            return ipStatRow(s[0],t+'/'+s[1]+' ('+_pct(t,s[1])+')','#f87171');
+          }).join('')
+        )+
+        ipSection('Clinical Insights',
+          ipInsight('info','📊','Smoking Risk Gradient','Smoking creates dose-dependent lung cancer risk. Your data shows Current Smoker tumor rate: <strong>'+_pct(curTumor,curSmoke)+'</strong> vs Never Smoked: <strong>'+_pct(nevTumor,nevSmoke)+'</strong>.')+
+          (curTumor>0
+            ? ipInsight('critical','🚬','Active Smoker Tumors Found','<strong>'+curTumor+' current smoker'+(curTumor>1?'s have':' has')+' confirmed tumors</strong>. Continued smoking during cancer treatment reduces efficacy and worsens outcomes. Cessation is a therapeutic intervention.')
+            : ipInsight('positive','✅','No Active Smoker Tumors','No current smokers have tumors — cessation counselling may be preventing disease progression.'))+
+          (nevTumor>0
+            ? ipInsight('warning','❓','Non-Smoker Cancer Cases','Never-smoker tumors suggest environmental factors or genetic predisposition. Molecular profiling and environmental exposure assessment required.')
+            : '')
+        )+
+        ipSection('Recommended Actions',
+          '<div class="ip-rec-list">'+
+          ipRec(1,'Track cessation rates alongside tumor incidence to measure programme impact.')+
+          ipRec(2,'Smokers with tumors: enrol in combined oncology + cessation programme.')+
+          ipRec(3,'Non-smoker tumors: arrange home radon test and occupational carcinogen review.')+
+          '</div>')
+    },
+
+    highlights:{
+      badge:'⚠️ Risk Highlights', badgeColor:'rgba(239,68,68,.15)', badgeTxt:'#f87171',
+      title:'Critical Clinical Patterns', sub:'Notable risk combinations requiring immediate attention',
+      body:
+        ipSection('Risk Combination Numbers',
+          ipStatRow('Never Smoked + Tumor',nevTumor,'#f87171')+
+          ipStatRow('Age 50+ + Tumor',age50T,'#fbbf24')+
+          ipStatRow('Current Smoker + Tumor',curTumor,'#93c5fd')+
+          ipStatRow('High Risk + Age 50+',pts.filter(function(p){return (p.risk||'').toUpperCase()==='HIGH'&&p.age>=50;}).length,'#f87171')+
+          ipStatRow('All High Risk',rH,'#f87171')
+        )+
+        ipSection('Clinical Insights',
+          (nevTumor>0
+            ? ipInsight('critical','🚨','Unexpected Non-Smoker Cancers','<strong>'+nevTumor+' never-smoker tumor case'+(nevTumor>1?'s':'')+' detected</strong>. These are clinically significant — predominantly adenocarcinomas requiring EGFR, ALK, ROS1 molecular workup.')
+            : ipInsight('positive','✅','No Unexpected Non-Smoker Cancers','All tumors are in patients with known risk factors — expected clinical pattern.'))+
+          (age50T>0
+            ? ipInsight('warning','👴','Elderly + Tumor Combination','<strong>'+age50T+' patient'+(age50T>1?'s':'')+' aged 50+ with confirmed tumors</strong> — treatment plans must account for comorbidities, functional status, and reduced organ reserve.')
+            : '')+
+          (curTumor>0
+            ? ipInsight('info','🚬','Active Smokers with Cancer','<strong>'+curTumor+' current smoker'+(curTumor>1?'s':'')+' have tumors</strong>. Cessation significantly improves treatment response — it is not optional, it is therapeutic.')
+            : '')
+        )+
+        ipSection('Recommended Actions',
+          '<div class="ip-rec-list">'+
+          ipRec(1,'Non-smoker tumors: arrange EGFR/ALK molecular testing within 2 weeks.')+
+          ipRec(2,'Age 50+ tumors: geriatric assessment, ECOG performance status, organ function panel.')+
+          ipRec(3,'Smoker tumors: mandatory cessation referral as part of oncology treatment plan.')+
+          '</div>')
+    },
+
+    trends:{
+      badge:'📅 Scan Trends', badgeColor:'rgba(37,99,235,.15)', badgeTxt:'#93c5fd',
+      title:'Temporal Patterns in Your Data', sub:'Scan volume and tumor detection over time',
+      body:
+        ipSection('Trend Overview',
+          ipStatRow('Total Records',n,'#93c5fd')+
+          ipStatRow('Overall Tumor Rate',_pct(nT,n),'#f87171')+
+          ipStatRow('Most Recent Scan',pts.map(function(p){return p.created_at||'';}).filter(Boolean).sort().reverse()[0]||'—','#94a3b8')+
+          ipStatRow('Earliest Scan',pts.map(function(p){return p.created_at||'';}).filter(Boolean).sort()[0]||'—','#94a3b8')
+        )+
+        ipSection('Clinical Insights',
+          ipInsight('info','📈','Reading the Trend Lines','Blue line = total scans, Red = tumor detections. A widening gap indicates more scans with proportionally fewer tumors (healthy). A narrowing gap may signal rising tumor prevalence or higher-risk referrals.')+
+          ipInsight('info','📅','Time Filters Explained','Daily: spot recent activity spikes. Weekly: smooths noise for clearer patterns. Monthly: reveals long-term trends and seasonal shifts in screening behaviour.')+
+          (n<10
+            ? ipInsight('warning','⚠️','Limited Historical Data','With only <strong>'+n+' records</strong>, trend lines may not be reliable. Patterns will sharpen as more patients are scanned over time.')
+            : ipInsight('positive','📊','Adequate Sample Size','<strong>'+n+' records</strong> provide a useful foundation for trend analysis.'))
+        )+
+        ipSection('Recommended Actions',
+          '<div class="ip-rec-list">'+
+          ipRec(1,'Monitor weekly tumor rate — a sudden spike may indicate an environmental exposure cluster.')+
+          ipRec(2,'Use monthly view to plan staffing around peak scan periods.')+
+          ipRec(3,'If tumor rate trend is rising, review referral criteria and patient risk profiles.')+
+          '</div>')
+    },
+
+    scantype:{
+      badge:'🩻 Scan Modality', badgeColor:'rgba(59,130,246,.15)', badgeTxt:'#93c5fd',
+      title:'Scan Type Breakdown', sub:'Imaging modalities used across your patients',
+      body:
+        (function(){
+          var st={};
+          pts.forEach(function(p){var s=p.scan_type||'Unknown';st[s]=(st[s]||0)+1;});
+          return ipSection('Modality Counts',
+            Object.keys(st).map(function(k){return ipStatRow(k,st[k]+' ('+_pct(st[k],n)+')','#93c5fd');}).join('')
+          );
+        })()+
+        ipSection('Clinical Insights',
+          ipInsight('info','🩻','CT is the Gold Standard','Low-Dose CT (LDCT) is the USPSTF-recommended modality for lung cancer screening. It offers superior sensitivity for nodule detection compared to plain chest X-ray, which misses ~75% of early-stage cancers.')+
+          ipInsight('info','📊','Match Scan to Indication','LDCT for screening → HRCT for characterisation → PET-CT for staging → MRI for mediastinal involvement. Avoid plain X-ray as a primary screening tool.')+
+          ipInsight('info','💰','Dose Considerations','LDCT delivers approximately 1.5 mSv vs 7 mSv for standard CT. For annual screening in high-risk patients, LDCT is both clinically and radiologically appropriate.')
+        )+
+        ipSection('Recommended Actions',
+          '<div class="ip-rec-list">'+
+          ipRec(1,'Ensure all screening patients receive LDCT, not plain chest X-ray.')+
+          ipRec(2,'Lung-RADS 4A/4B: proceed to PET-CT for staging.')+
+          ipRec(3,'Document scan protocol (slice thickness, contrast) for reproducibility.')+
+          '</div>')
+    },
+
+    lungrads:{
+      badge:'📊 Lung-RADS', badgeColor:'rgba(245,158,11,.15)', badgeTxt:'#fbbf24',
+      title:'Lung-RADS Distribution', sub:'ACR clinical malignancy classification breakdown',
+      body:
+        (function(){
+          var lrC={'1':0,'2':0,'3':0,'4A':0,'4B':0};
+          pts.forEach(function(p){
+            var c=p.confidence||0, r=p.result||'';
+            var cat = (r==='Tumor Detected') ? (c>=92?'4B':c>=82?'4A':'3') : (c>=92?'1':'2');
+            lrC[cat]++;
+          });
+          return ipSection('Category Counts',
+            ipStatRow('Cat 1 — Negative',lrC['1'],'#34d399')+
+            ipStatRow('Cat 2 — Benign',lrC['2'],'#34d399')+
+            ipStatRow('Cat 3 — Probably Benign',lrC['3'],'#fbbf24')+
+            ipStatRow('Cat 4A — Suspicious',lrC['4A'],'#f87171')+
+            ipStatRow('Cat 4B — Very Suspicious',lrC['4B'],'#dc2626')+
+            ipSection('Clinical Insights',
+              ((lrC['4A']+lrC['4B'])>0
+                ? ipInsight('critical','🚨','Urgent Cases Present','<strong>'+(lrC['4A']+lrC['4B'])+' patient'+((lrC['4A']+lrC['4B'])>1?'s are':' is')+' Lung-RADS 4A/4B</strong>. ACR guidelines mandate tissue sampling or surgical consultation. Do not defer biopsy.')
+                : ipInsight('positive','✅','No Category 4 Cases','No Lung-RADS 4 cases — no urgent biopsy referrals required in this period.'))+
+              (lrC['3']>0
+                ? ipInsight('warning','⚠️','Category 3 Requires Follow-up','<strong>'+lrC['3']+' Lung-RADS 3 case'+(lrC['3']>1?'s':'')+' require 6-month follow-up CT</strong>. Must not be discharged without documented repeat imaging.')
+                : '')+
+              ipInsight('info','📋','Lung-RADS Scale','1: Negative. 2: Benign. 3: 6-month follow-up CT. 4A: PET-CT/biopsy within 1 month. 4B: Immediate tissue sampling. All categories should be confirmed by radiologist review.')
+            )
+          );
+        })()+
+        ipSection('Recommended Actions',
+          '<div class="ip-rec-list">'+
+          ipRec(1,'Cat 4A/4B: immediate biopsy or surgical staging referral.')+
+          ipRec(2,'Cat 3: schedule 6-month follow-up CT and document in patient record.')+
+          ipRec(3,'Cat 1/2: annual LDCT per standard screening guidelines.')+
+          '</div>')
+    }
+
+  };
+
+  return M[key] || M['total'];
+}
+
+function showInsight(key){
+  var pts = CURRENT_PTS;
+  var cfg = buildInsightData(key, pts);
+
+  var badge = document.getElementById('ip-badge');
+  badge.textContent      = cfg.badge;
+  badge.style.background = cfg.badgeColor || 'rgba(37,99,235,.2)';
+  badge.style.color      = cfg.badgeTxt   || '#93c5fd';
+  badge.style.border     = '1px solid '+(cfg.badgeTxt||'#93c5fd')+'44';
+
+  document.getElementById('ip-title').textContent = cfg.title;
+  document.getElementById('ip-sub').textContent   = cfg.sub;
+  document.getElementById('ip-body').innerHTML    = cfg.body;
+
+  document.getElementById('insight-panel').classList.add('open');
+  document.getElementById('insight-overlay').classList.add('active');
+  document.getElementById('ip-body').scrollTop = 0;
+}
+
+function closeInsight(){
+  document.getElementById('insight-panel').classList.remove('open');
+  document.getElementById('insight-overlay').classList.remove('active');
+}
+
+// Keep CURRENT_PTS in sync whenever renderAll is called
+var _origRenderAll = renderAll;
+renderAll = function(pts){
+  CURRENT_PTS = pts || [];
+  _origRenderAll(pts);
+};
+
+// ESC key closes panel
+document.addEventListener('keydown', function(e){
+  if(e.key==='Escape') closeInsight();
+});
+
+</script>
+{% endblock %}

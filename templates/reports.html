@@ -1,0 +1,1193 @@
+{% extends "base.html" %}
+
+{% block title %}DiagnosticAI — Reports{% endblock %}
+
+{% block extra_styles %}
+<style>
+    /* Styling adjustments for reports list and print modal */
+    .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 24px;
+    }
+    .page-title {
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        background: linear-gradient(135deg, var(--text-primary) 30%, var(--text-secondary) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .page-desc {
+        font-size: 14px;
+        color: var(--text-secondary);
+        margin-top: 4px;
+    }
+
+    /* Report list items style */
+    .report-item {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 18px;
+        border-radius: 12px;
+        background: rgba(30, 45, 69, 0.2);
+        border: 1px solid var(--border);
+        margin-bottom: 12px;
+        transition: all 0.2s ease;
+    }
+    .report-item:hover {
+        border-color: var(--blue-bright);
+        transform: translateX(4px);
+        background: rgba(30, 45, 69, 0.35);
+    }
+    .report-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        background: rgba(37, 99, 235, 0.1);
+        border: 1px solid rgba(37, 99, 235, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--blue-glow);
+        font-size: 20px;
+        flex-shrink: 0;
+    }
+    .report-name {
+        font-size: 14.5px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    .report-meta {
+        font-size: 12.5px;
+        color: var(--text-secondary);
+        margin-top: 4px;
+    }
+    .report-actions {
+        margin-left: auto;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    /* Search & Filter box styles */
+    .filters-bar {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 20px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    .search-box {
+        flex: 1;
+        min-width: 240px;
+        position: relative;
+    }
+    .search-box i {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        width: 16px;
+        height: 16px;
+        pointer-events: none;
+    }
+    .search-box input {
+        width: 100%;
+        padding: 9px 16px 9px 42px;
+        background: rgba(10, 15, 30, 0.45);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text-primary);
+        font-size: 13.5px;
+        transition: all 0.22s ease;
+    }
+    .search-box input:hover {
+        border-color: rgba(59, 130, 246, 0.35);
+        background: rgba(10, 15, 30, 0.65);
+    }
+    .search-box input:focus {
+        outline: none;
+        border-color: var(--blue-bright);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+    .select-box {
+        padding: 9px 14px;
+        background: rgba(10, 15, 30, 0.45);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text-primary);
+        font-size: 13.5px;
+        cursor: pointer;
+        outline: none;
+        transition: all 0.22s ease;
+    }
+    .select-box:hover {
+        border-color: rgba(59, 130, 246, 0.35);
+        background: rgba(10, 15, 30, 0.65);
+    }
+    .select-box:focus {
+        border-color: var(--blue-bright);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+    .select-box option {
+        background: var(--navy-mid);
+        color: var(--text-primary);
+    }
+
+    /* Print Preview Modal and printable report styles */
+    #print-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 5000;
+        background: rgba(0, 0, 0, .8);
+        backdrop-filter: blur(8px);
+        overflow-y: auto;
+        padding: 30px 16px;
+    }
+    #print-modal.open {
+        display: block;
+    }
+    #print-modal-inner {
+        max-width: 820px;
+        margin: 0 auto;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 40px 120px rgba(0, 0, 0, .7);
+    }
+    .pmt-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 20px;
+        background: #1e293b;
+        border-bottom: 1px solid #334155;
+    }
+    .pmt-bar-label {
+        font-size: 13.5px;
+        font-weight: 600;
+        color: #f8fafc;
+    }
+    .pmt-bar-btns {
+        display: flex;
+        gap: 10px;
+    }
+    .pmt-close {
+        padding: 7px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-family: var(--font-sans);
+        cursor: pointer;
+        border: 1px solid rgba(239, 68, 68, 0.35);
+        background: rgba(239, 68, 68, 0.1);
+        color: #f87171;
+        transition: all 0.2s;
+    }
+    .pmt-close:hover {
+        background: rgba(239, 68, 68, 0.2);
+    }
+    .pmt-print {
+        padding: 7px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-family: var(--font-sans);
+        cursor: pointer;
+        border: none;
+        background: #2563eb;
+        color: white;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    .pmt-print:hover {
+        background: #1d4ed8;
+    }
+
+    /* Print styling rules (mostly white/dark text for printing) */
+    .rpt-page {
+        font-family: var(--font-sans);
+        background: #fff;
+        color: #1e293b;
+    }
+    .rpt-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 28px 14px;
+        border-bottom: 2px solid #2563eb;
+        background: #fff;
+    }
+    .rpt-head-brand {
+        font-size: 18px;
+        font-weight: 700;
+        color: #2563eb;
+    }
+    .rpt-head-sub {
+        font-size: 10.5px;
+        color: #64748b;
+        margin-top: 1px;
+    }
+    .rpt-head-right {
+        text-align: right;
+        font-size: 11px;
+        color: #64748b;
+    }
+    .rpt-head-right strong {
+        color: #111;
+    }
+    .rpt-tsbar {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        flex-wrap: wrap;
+        padding: 8px 28px;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        font-size: 11.5px;
+        color: #64748b;
+    }
+    .rpt-tsdot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #10b981;
+        flex-shrink: 0;
+    }
+    .rpt-hero {
+        padding: 20px 28px;
+        border-left: 4px solid #e2e8f0;
+        display: flex;
+        align-items: flex-start;
+        gap: 18px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .rpt-hero.is-tumor {
+        border-left-color: #ef4444;
+        background: #fff8f8;
+    }
+    .rpt-hero.is-normal {
+        border-left-color: #10b981;
+        background: #f0fdf4;
+    }
+    .rpt-hero-icon {
+        width: 68px;
+        height: 68px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+    }
+    .rpt-hero-icon.danger {
+        background: rgba(239,68,68,.12);
+        border: 2px solid rgba(239,68,68,.45);
+    }
+    .rpt-hero-icon.safe {
+        background: rgba(16,185,129,.12);
+        border: 2px solid rgba(16,185,129,.45);
+    }
+    .rpt-hero-body {
+        flex: 1;
+    }
+    .rpt-headline {
+        font-size: 26px;
+        font-weight: 700;
+        line-height: 1.1;
+        margin-bottom: 3px;
+    }
+    .rpt-subline {
+        font-size: 13px;
+        color: #64748b;
+        margin-bottom: 10px;
+    }
+    .rpt-badges {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+    }
+    .rpt-conf-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 6px;
+    }
+    .rpt-conf-text {
+        font-size: 12px;
+        color: #64748b;
+    }
+    .rpt-conf-note {
+        font-size: 10px;
+        color: #94a3b8;
+        font-style: italic;
+    }
+    .rpt-conf-num {
+        font-family: var(--font-mono);
+        font-size: 20px;
+        font-weight: 700;
+    }
+    .rpt-ctrack {
+        height: 10px;
+        border-radius: 5px;
+        background: #e2e8f0;
+        overflow: hidden;
+    }
+    .rpt-cfill {
+        height: 100%;
+        border-radius: 5px;
+        transition: width 1.4s ease;
+    }
+    .rpt-cfill.red {
+        background: linear-gradient(90deg,#ef4444,#f97316);
+    }
+    .rpt-cfill.green {
+        background: linear-gradient(90deg,#10b981,#06b6d4);
+    }
+    .rpt-hero-right {
+        text-align: right;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        align-items: flex-end;
+        padding-top: 4px;
+    }
+    .rpt-body {
+        padding: 20px 28px;
+    }
+    .rpt-row2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+    .rpt-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 16px;
+    }
+    .rpt-stitle {
+        font-size: 14.5px;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 3px;
+    }
+    .rpt-ssub {
+        font-size: 11px;
+        color: #64748b;
+        margin-bottom: 12px;
+    }
+    .rpt-mrow {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        padding: 7px 0;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .rpt-mrow:last-child {
+        border-bottom: none;
+    }
+    .rpt-mlabel {
+        color: #64748b;
+    }
+    .rpt-mval {
+        font-weight: 500;
+        color: #1e293b;
+        text-align: right;
+    }
+    .rpt-lr-card {
+        border-radius: 10px;
+        padding: 16px;
+        border: 2px solid #e2e8f0;
+    }
+    .rpt-lr-num {
+        font-family: var(--font-mono);
+        font-size: 42px;
+        font-weight: 700;
+        line-height: 1;
+    }
+    .rpt-lr-label {
+        font-size: 14.5px;
+        font-weight: 600;
+        margin: 7px 0 5px;
+    }
+    .rpt-lr-desc {
+        font-size: 12.5px;
+        color: #475569;
+        line-height: 1.6;
+        margin-bottom: 10px;
+    }
+    .rpt-lr-action {
+        font-size: 12px;
+        font-weight: 600;
+        padding: 7px 12px;
+        border-radius: 7px;
+        background: #f1f5f9;
+        border-left: 3px solid #e2e8f0;
+        color: #334155;
+    }
+    .rpt-scale-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 5px;
+    }
+    .rpt-scale-num {
+        width: 26px;
+        height: 26px;
+        border-radius: 5px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        font-weight: 700;
+        font-family: var(--font-mono);
+    }
+    .rpt-rec {
+        border-radius: 10px;
+        padding: 13px 16px;
+        margin-bottom: 10px;
+        display: flex;
+        gap: 14px;
+        border: 1px solid #cbd5e1;
+        transition: all 0.2s ease;
+    }
+    .rpt-rec.urgent {
+        border-left: 5px solid #ef4444;
+        border-color: rgba(239, 68, 68, 0.2) rgba(239, 68, 68, 0.2) rgba(239, 68, 68, 0.2) #ef4444;
+        background: #fff8f8;
+    }
+    .rpt-rec.warning {
+        border-left: 5px solid #f59e0b;
+        border-color: rgba(245, 158, 11, 0.2) rgba(245, 158, 11, 0.2) rgba(245, 158, 11, 0.2) #f59e0b;
+        background: #fffdf0;
+    }
+    .rpt-rec.info {
+        border-left: 5px solid #2563eb;
+        border-color: rgba(37, 99, 235, 0.2) rgba(37, 99, 235, 0.2) rgba(37, 99, 235, 0.2) #2563eb;
+        background: #f0f6ff;
+    }
+    .rpt-rec.good {
+        border-left: 5px solid #10b981;
+        border-color: rgba(16, 185, 129, 0.2) rgba(16, 185, 129, 0.2) rgba(16, 185, 129, 0.2) #10b981;
+        background: #f0fdf4;
+    }
+    .rpt-rec-icon {
+        flex-shrink: 0;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: 700;
+    }
+    .rpt-rec-icon.urgent {
+        background: rgba(239,68,68,.15);
+        color: #dc2626;
+    }
+    .rpt-rec-icon.warning {
+        background: rgba(245,158,11,.15);
+        color: #d97706;
+    }
+    .rpt-rec-icon.info {
+        background: rgba(37,99,235,.15);
+        color: #2563eb;
+    }
+    .rpt-rec-icon.good {
+        background: rgba(16,185,129,.15);
+        color: #16a34a;
+    }
+    .rpt-rec-urg {
+        font-size: 10px;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        font-weight: 700;
+        margin-bottom: 3px;
+    }
+    .rpt-rec-urg.urgent { color: #dc2626; }
+    .rpt-rec-urg.warning { color: #d97706; }
+    .rpt-rec-urg.info { color: #2563eb; }
+    .rpt-rec-urg.good { color: #16a34a; }
+    
+    .rpt-rec-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 3px;
+    }
+    .rpt-rec-desc {
+        font-size: 12.5px;
+        color: #475569;
+        line-height: 1.5;
+    }
+    .rpt-foot {
+        padding: 16px 28px;
+        background: #f8fafc;
+        border-top: 1px solid #e2e8f0;
+        font-size: 10.5px;
+        color: #94a3b8;
+        text-align: center;
+    }
+
+    #rpt-print-root {
+        display: none;
+    }
+
+    /* Print Overrides */
+    @media print {
+        * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        .sidebar, .main-content > *:not(#rpt-print-root), #print-modal, .pmt-bar, #logout-modal {
+            display: none !important;
+        }
+        body {
+            background: #fff !important;
+            display: block !important;
+            min-height: auto !important;
+        }
+        .main-content {
+            margin-left: 0 !important;
+            padding: 0 !important;
+            min-height: auto !important;
+            display: block !important;
+        }
+        #rpt-print-root {
+            display: block !important;
+        }
+        .rpt-hero.is-tumor {
+            border-left: 4px solid #ef4444 !important;
+            background: #fff8f8 !important;
+        }
+        .rpt-hero.is-normal {
+            border-left: 4px solid #10b981 !important;
+            background: #f0fdf4 !important;
+        }
+        .rpt-hero-icon.danger {
+            background: rgba(239,68,68,.12) !important;
+            border: 2px solid rgba(239,68,68,.45) !important;
+        }
+        .rpt-hero-icon.safe {
+            background: rgba(16,185,129,.12) !important;
+            border: 2px solid rgba(16,185,129,.45) !important;
+        }
+        .rpt-cfill.red {
+            background: linear-gradient(90deg,#ef4444,#f97316) !important;
+        }
+        .rpt-cfill.green {
+            background: linear-gradient(90deg,#10b981,#06b6d4) !important;
+        }
+        .rpt-rec.urgent {
+            border-left: 5px solid #ef4444 !important;
+            border-color: rgba(239, 68, 68, 0.25) !important;
+            background: #fff5f5 !important;
+        }
+        .rpt-rec.warning {
+            border-left: 5px solid #f59e0b !important;
+            border-color: rgba(245, 158, 11, 0.25) !important;
+            background: #fffbeb !important;
+        }
+        .rpt-rec.info {
+            border-left: 5px solid #2563eb !important;
+            border-color: rgba(37, 99, 235, 0.25) !important;
+            background: #eff6ff !important;
+        }
+        .rpt-rec.good {
+            border-left: 5px solid #10b981 !important;
+            border-color: rgba(16, 185, 129, 0.25) !important;
+            background: #f0fdf4 !important;
+        }
+        .rpt-rec-icon.urgent { background: rgba(239,68,68,.12) !important; }
+        .rpt-rec-icon.warning { background: rgba(245,158,11,.12) !important; }
+        .rpt-rec-icon.info { background: rgba(37,99,235,.12) !important; }
+        .rpt-rec-icon.good { background: rgba(16,185,129,.12) !important; }
+        .rpt-row2 {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+        }
+        .rpt-card { background: #fff !important; }
+        .rpt-card div[style*="background:rgba(16,185,129,0.08)"] {
+            background: #f0fdf4 !important;
+            border-color: #bbf7d0 !important;
+            color: #14532d !important;
+        }
+        .rpt-card div[style*="background:rgba(239,68,68,0.08)"] {
+            background: #fff5f5 !important;
+            border-color: #fecaca !important;
+            color: #7f1d1d !important;
+        }
+        .rpt-head { background: #fff !important; }
+        .rpt-tsbar { background: #f8fafc !important; }
+        .rpt-hero, .rpt-card, .rpt-rec {
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+        html, body {
+            height: auto !important;
+        }
+        @page {
+            margin: 12mm 14mm;
+            size: A4 portrait;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div>
+        <h1 class="page-title">Reports</h1>
+        <p class="page-desc">View, export and print clinical AI diagnosis reports</p>
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns: 1fr 300px; gap: 24px; align-items: start;">
+
+    <!-- LIST -->
+    <div class="card">
+        <div style="font-size:16px; font-weight:600; margin-bottom:20px; display:flex; align-items:center; gap:8px;">
+            <i data-lucide="file-text" style="width: 18px; height: 18px; color: var(--blue-glow);"></i>
+            <span>All Patient Reports</span>
+            <span style="font-size:12.5px; color:var(--text-muted); font-weight:400; margin-left:8px;"><strong id="reports-count-label">{{ patients|length }}</strong> records</span>
+        </div>
+
+        <!-- Filters Bar -->
+        <div class="filters-bar">
+            <div class="search-box">
+                <i data-lucide="search"></i>
+                <input type="text" placeholder="Search patient ID or name..." id="searchReportsInput" onkeyup="filterReports()">
+            </div>
+            <select class="select-box" id="resultFilterSelect" onchange="filterReports()">
+                <option value="">All Diagnoses</option>
+                <option value="Normal">Normal</option>
+                <option value="Tumor Detected">Tumor Detected</option>
+            </select>
+            <button class="btn btn-ghost btn-sm" onclick="clearReportsFilters()" style="padding: 9px 14px; height: 38px;">
+                <i data-lucide="refresh-cw" style="width: 13px; height: 13px;"></i> Clear
+            </button>
+        </div>
+        
+        {% if patients %}
+            {% for p in patients %}
+            <div class="report-item">
+                <div class="report-icon">
+                    <i data-lucide="file"></i>
+                </div>
+                <div>
+                    <div class="report-name">{{ p['patient_id'] }} — Diagnostic Report</div>
+                    <div class="report-meta">
+                        <strong>{{ p['name'] or 'Unknown' }}</strong> · 
+                        {{ p['scan_type'] or 'CT Scan' }} · 
+                        {{ p['created_at'][:10] }}
+                    </div>
+                </div>
+                <div class="report-actions">
+                    {% if p['result'] == 'Normal' %}
+                    <span class="badge badge-green">Normal</span>
+                    {% else %}
+                    <span class="badge badge-red">Tumor Detected</span>
+                    {% endif %}
+                    
+                    <a href="/result/{{ p['patient_id'] }}" class="btn btn-ghost btn-sm">
+                        <i data-lucide="eye" style="width: 14px; height: 14px;"></i> View
+                    </a>
+                    <button class="btn btn-primary btn-sm" onclick="openReport(
+                      '{{ p['patient_id'] }}',
+                      '{{ p['name'] or 'Unknown' }}',
+                      {{ p['age'] or 0 }},
+                      '{{ p['gender'] or 'Not specified' }}',
+                      '{{ p['smoking'] or 'Not specified' }}',
+                      '{{ p['result'] }}',
+                      {{ p['confidence'] or 0 }},
+                      '{{ p['scan_type'] or 'CT Scan' }}',
+                      '{{ doctor_name }}',
+                      '{{ profile['hospital'] if profile else '' }}',
+                      '{{ profile['specialization'] if profile else 'Radiologist' }}',
+                      '{{ p['created_at'][:10] }}',
+                      '{{ p['image_path'] or '' }}',
+                      '{{ p['symptoms'] or 'None reported' }}',
+                      {{ p['pack_years'] or 0.0 }},
+                      '{{ p['smoking_type'] or '' }}',
+                      {{ p['amount_per_day'] or 0 }},
+                      {{ p['years_smoked'] or 0 }},
+                      {{ p['years_since_quit'] or 0 }}
+                    )">
+                        <i data-lucide="printer" style="width: 14px; height: 14px;"></i> Print
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div style="text-align:center; padding:60px; color:var(--text-muted);">
+                <i data-lucide="file-text" style="width: 48px; height: 48px; opacity: 0.5; margin-bottom: 16px;"></i>
+                <div>No reports generated yet. Upload a patient scan to analyze and generate a report.</div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- SUMMARY -->
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+        <div class="card">
+            <div style="font-size:15px; font-weight:600; margin-bottom:16px; display:flex; align-items:center; gap:8px;">
+                <i data-lucide="bar-chart-3" style="width: 16px; height: 16px; color: var(--blue-glow);"></i>
+                <span>Clinical Cohort Summary</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+                <div style="display:flex; justify-content:space-between; font-size:13px;">
+                    <span style="color:var(--text-secondary);">Total Records</span>
+                    <span style="font-family:var(--font-mono); font-size:13px; font-weight:600;">{{ patients|length }}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:13px;">
+                    <span style="color:var(--text-secondary);">Tumor Detected</span>
+                    <span style="font-family:var(--font-mono); font-size:13px; color:#f87171; font-weight:600;">
+                        {{ patients|selectattr('result','equalto','Tumor Detected')|list|length }}
+                    </span>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:13px;">
+                    <span style="color:var(--text-secondary);">Normal / Healthy</span>
+                    <span style="font-family:var(--font-mono); font-size:13px; color:#34d399; font-weight:600;">
+                        {{ patients|selectattr('result','equalto','Normal')|list|length }}
+                    </span>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:13px; border-top: 1px solid var(--border); padding-top: 12px; margin-top: 4px;">
+                    <span style="color:var(--text-secondary);">Avg AI Confidence</span>
+                    {% set total_conf = patients | sum(attribute='confidence') %}
+                    {% set avg_conf = (total_conf / patients|length) | round(2) if patients|length > 0 else 0 %}
+                    <span style="font-family:var(--font-mono); font-size:13px; color:{{ '#34d399' if avg_conf >= 80 else '#f59e0b' if avg_conf >= 60 else '#f87171' }}; font-weight:700;">
+                        {{ avg_conf }}%
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card" style="border-color: rgba(37,99,235,.2);">
+            <div style="font-size:13px; font-weight:600; color: var(--blue-glow); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">
+                Export Options
+            </div>
+            <p style="font-size:12px; color: var(--text-secondary); margin-bottom:14px; line-height:1.5;">
+                Download complete patient diagnostics and cohort lists for record-keeping and external audits.
+            </p>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <a href="/export/pdf" class="btn btn-ghost btn-sm" style="justify-content: flex-start; gap: 10px;" target="_blank">
+                    <i data-lucide="file-text" style="width: 14px; height: 14px;"></i> Export All to PDF
+                </a>
+                <a href="/export/excel" class="btn btn-ghost btn-sm" style="justify-content: flex-start; gap: 10px;" target="_blank">
+                    <i data-lucide="download" style="width: 14px; height: 14px;"></i> Export All to Excel
+                </a>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ── PRINT PREVIEW MODAL ── -->
+<div id="print-modal">
+    <div class="pmt-bar no-print">
+        <span class="pmt-bar-label" id="pmt-label">Diagnostic Report</span>
+        <div class="pmt-bar-btns">
+            <button class="pmt-close" onclick="closeReport()">✕ Close</button>
+            <button class="pmt-print" onclick="window.print()">🖨️ Print / Save PDF</button>
+        </div>
+    </div>
+    <div id="print-modal-inner">
+        <div class="rpt-page" id="rpt-page">
+            <!-- Header -->
+            <div class="rpt-head">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:24px;">🫁</span>
+                    <div>
+                        <div class="rpt-head-brand">DiagnosticAI</div>
+                        <div class="rpt-head-sub">AI Lung Cancer Detection Platform</div>
+                    </div>
+                </div>
+                <div class="rpt-head-right">
+                    <div>Patient: <strong id="rh-id">—</strong></div>
+                    <div id="rh-drline">—</div>
+                </div>
+            </div>
+
+            <!-- Status bar -->
+            <div class="rpt-tsbar">
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <div class="rpt-tsdot"></div>
+                    <span>Analysis Complete</span>
+                </div>
+                <div>📅 <span id="rh-date">—</span></div>
+                <div>👨‍⚕️ Dr. <strong id="rh-drname" style="color:#1e293b;">—</strong></div>
+                <div>🤖 <strong style="color:#1e293b;">lung_cancer_model.h5</strong></div>
+                <div style="margin-left:auto;"><span style="color:#10b981; font-size:11px; font-weight:600;">✅ AI VERIFIED</span></div>
+            </div>
+
+            <!-- Result Hero -->
+            <div class="rpt-hero" id="rh-hero">
+                <div class="rpt-hero-icon" id="rh-icon">—</div>
+                <div class="rpt-hero-body">
+                    <div class="rpt-headline" id="rh-headline">—</div>
+                    <div class="rpt-subline" id="rh-subline">—</div>
+                    <div class="rpt-badges">
+                        <span class="badge" id="rh-risk-badge">—</span>
+                        <span class="badge badge-blue" id="rh-lr-badge">—</span>
+                    </div>
+                    <div class="rpt-conf-row">
+                        <span class="rpt-conf-text">AI Confidence Score</span>
+                        <span class="rpt-conf-note">Pattern match — not diagnostic probability</span>
+                        <span class="rpt-conf-num" id="rh-conf-num">0%</span>
+                    </div>
+                    <div class="rpt-ctrack"><div class="rpt-cfill" id="rh-conf-fill" style="width:0%;"></div></div>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="rpt-body">
+                <!-- 2-col: Scan Analysis + Diagnostic Details -->
+                <div class="rpt-row2">
+                    <!-- Scan Analysis (Left) -->
+                    <div class="rpt-card" style="display:flex; flex-direction:column;">
+                        <div class="rpt-stitle">🫁 Scan Analysis</div>
+                        <div class="rpt-ssub" id="rh-scan-sub">—</div>
+                        <div style="border-radius:8px; overflow:hidden; border:1px solid #cbd5e1; margin-top:8px; flex:1; display:flex; align-items:center; justify-content:center; background:#030712; min-height:240px;">
+                            <img id="rh-scan-img" src="" alt="Patient Scan Image" style="max-width:100%; max-height:280px; object-fit:contain;">
+                        </div>
+                    </div>
+                    <!-- Diagnostic Details (Right) -->
+                    <div class="rpt-card">
+                        <div class="rpt-stitle">📋 Diagnostic Details</div>
+                        <div class="rpt-ssub">Complete patient &amp; AI summary</div>
+                        
+                        <div style="font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px; border-bottom:1px solid #e2e8f0; padding-bottom:4px;">Demographics &amp; Profile</div>
+                        <div class="rpt-mrow"><span class="rpt-mlabel">Patient ID</span><span class="rpt-mval" style="font-family:var(--font-mono); font-size:11px; color:#2563eb;" id="rh-id2">—</span></div>
+                        <div class="rpt-mrow"><span class="rpt-mlabel">Patient Name</span><span class="rpt-mval" id="rh-name">—</span></div>
+                        <div class="rpt-mrow"><span class="rpt-mlabel">Age</span><span class="rpt-mval" id="rh-age">—</span></div>
+                        <div class="rpt-mrow"><span class="rpt-mlabel">Gender</span><span class="rpt-mval" id="rh-gender">—</span></div>
+                        <div class="rpt-mrow"><span class="rpt-mlabel">Smoking History</span><span class="rpt-mval" id="rh-smoking">—</span></div>
+                        <div class="rpt-mrow"><span class="rpt-mlabel">Reported Symptoms</span><span class="rpt-mval" id="rh-symptoms">—</span></div>
+                        
+                        <!-- Exposure Metrics Placeholder Container -->
+                        <div id="rh-exposure-metrics"></div>
+                        
+                        <div style="font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px; margin-top:14px; border-bottom:1px solid #e2e8f0; padding-bottom:4px;">AI Diagnostic Analysis</div>
+                        <div class="rpt-mrow"><span class="rpt-mlabel">Scan Modality</span><span class="rpt-mval" id="rh-scan">—</span></div>
+                        <div class="rpt-mrow"><span class="rpt-mlabel">Analysis Date</span><span class="rpt-mval" id="rh-date2">—</span></div>
+                        <div class="rpt-mrow"><span class="rpt-mlabel">Prediction Finding</span><span class="rpt-mval" id="rh-result" style="font-weight:700;">—</span></div>
+                        <div class="rpt-mrow"><span class="rpt-mlabel">AI Confidence Score</span><span class="rpt-mval" id="rh-conf" style="font-family:var(--font-mono); font-size:12.5px;">—</span></div>
+                        <div class="rpt-mrow"><span class="rpt-mlabel">Calculated Risk Level</span><span class="rpt-mval" id="rh-risk" style="font-weight:700;">—</span></div>
+                        <div class="rpt-mrow"><span class="rpt-mlabel">Lung-RADS Category</span><span class="rpt-mval" id="rh-lr-cat" style="font-weight:700;">—</span></div>
+                        <div class="rpt-mrow"><span class="rpt-mlabel">Model Accuracy</span><span class="rpt-mval" style="color:#10b981;">99.4%</span></div>
+                        
+                        <!-- Alert Banner Container -->
+                        <div id="rh-alert-banner" style="margin-top:16px;"></div>
+                    </div>
+                </div>
+
+                <!-- Lung-RADS Score -->
+                <div class="rpt-card" style="margin-bottom:16px; margin-top:16px;">
+                    <div class="rpt-stitle">📊 Lung-RADS Score</div>
+                    <div class="rpt-ssub" id="rh-lr-sub">Clinical nodule classification</div>
+                    <div class="rpt-lr-card" id="rh-lr-card">
+                        <div class="rpt-lr-num" id="rh-lr-num">—</div>
+                        <div class="rpt-lr-label" id="rh-lr-label">—</div>
+                        <div class="rpt-lr-desc" id="rh-lr-desc">—</div>
+                        <div class="rpt-lr-action" id="rh-lr-action">—</div>
+                    </div>
+                    <div style="margin-top:12px;">
+                        <div style="font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px;">Scale Reference</div>
+                        <div id="rh-scale"></div>
+                    </div>
+                </div>
+
+                <!-- Clinical Recommendations -->
+                <div class="rpt-card">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
+                        <div class="rpt-stitle">📋 Clinical Recommendations</div>
+                    </div>
+                    <div style="font-size:11.5px; color:#94a3b8; margin-bottom:14px;">Standard medical guidelines based on scan results and history.</div>
+                    <div id="rh-recs"></div>
+                </div>
+
+                <!-- Clinician Sign-off -->
+                <div style="display:flex; justify-content:space-between; margin-top:24px; padding:16px 0 8px; border-top:1px dashed #cbd5e1; font-size:12.5px; color:#475569;">
+                    <div>
+                        <span>Reviewing Clinician:</span><br>
+                        <strong style="color:#1e293b; display:inline-block; margin-top:4px;" id="rh-drname-sign">—</strong>
+                    </div>
+                    <div style="text-align:right;">
+                        <span>Signature &amp; Date:</span><br>
+                        <span style="color:#cbd5e1; font-family:var(--font-mono); display:inline-block; margin-top:4px;">___________________________</span>
+                    </div>
+                </div>
+            </div><!-- /rpt-body -->
+
+            <!-- Footer -->
+            <div class="rpt-foot">
+                Generated by DiagnosticAI · lung_cancer_model.h5 · For clinical reference only · Not a substitute for professional medical diagnosis<br>
+                <span id="rh-footer-id" style="font-family:var(--font-mono); font-size:9px;">—</span>
+            </div>
+        </div><!-- /rpt-page -->
+    </div><!-- /print-modal-inner -->
+</div><!-- /print-modal -->
+
+<!-- Print-only root (copy of rpt-page injected here before print) -->
+<div id="rpt-print-root"></div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    /* ── Close modal ── */
+    function closeReport(){
+        document.getElementById('print-modal').classList.remove('open');
+        document.body.style.overflow='';
+    }
+
+    /* ── Open Report ── */
+    function openReport(id,name,age,gender,smoking,result,conf,scan,doctor,hospital,spec,date,image,symptoms,packYears,smokingType,amountPerDay,yearsSmoked,yearsSinceQuit){
+        const isTumor=(result==='Tumor Detected');
+        const confNum=parseFloat(conf);
+
+        /* Risk */
+        let risk,riskClass,riskColor;
+        if(isTumor&&confNum>=85){risk='HIGH';riskClass='badge-red';riskColor='#dc2626';}
+        else if(isTumor){risk='MEDIUM';riskClass='badge-amber';riskColor='#d97706';}
+        else{risk='LOW';riskClass='badge-green';riskColor='#16a34a';}
+
+        /* Lung-RADS */
+        let lr,lrColor,lrLabel,lrDesc,lrAction;
+        if(isTumor){
+            if(confNum>=92){lr='4B';lrColor='#dc2626';lrLabel='Lung-RADS 4B — Very Suspicious';lrDesc='Highly suspicious nodule with a high likelihood of malignancy detected.';lrAction='Rx Immediate tissue sampling (biopsy) or surgical resection recommended.';}
+            else if(confNum>=82){lr='4A';lrColor='#ef4444';lrLabel='Lung-RADS 4A — Suspicious';lrDesc='Suspicious nodule with moderate-to-high probability of malignancy.';lrAction='Rx PET-CT or tissue sampling within 1 month.';}
+            else{lr='3';lrColor='#f59e0b';lrLabel='Lung-RADS 3 — Probably Benign';lrDesc='Low likelihood of malignancy but warrants short-term follow-up imaging.';lrAction='Rx Short-term follow-up CT in 6 months.';}
+        } else {
+            if(confNum>=92){lr='1';lrColor='#059669';lrLabel='Lung-RADS 1 — Negative';lrDesc='No lung nodules detected. No features suspicious for malignancy.';lrAction='Rx Annual low-dose CT screening as per guidelines.';}
+            else{lr='2';lrColor='#10b981';lrLabel='Lung-RADS 2 — Benign Appearance';lrDesc='Nodule(s) with a very low likelihood of malignancy present.';lrAction='Rx Routine annual screening recommended.';}
+        }
+
+        /* Smoking HTML */
+        let smokingHTML;
+        if(smoking==='Current Smoker') smokingHTML='<span style="color:#f87171;"><span style="font-size:11px;font-weight:700;background:rgba(239,68,68,.2);padding:1px 5px;border-radius:4px;margin-right:4px;">✕</span>Current Smoker</span>';
+        else if(smoking==='Former Smoker') smokingHTML='<span style="color:#fbbf24;"><span style="font-size:11px;font-weight:700;background:rgba(245,158,11,.2);padding:1px 5px;border-radius:4px;margin-right:4px;">✕</span>Former Smoker</span>';
+        else if(smoking==='Never Smoked') smokingHTML='<span style="color:#34d399;">✅ Never Smoked</span>';
+        else if(smoking==='Passive Smoker') smokingHTML='<span style="color:#fbbf24;"><span style="font-size:11px;margin-right:4px;">〰</span>Passive Smoker</span>';
+        else smokingHTML=smoking||'—';
+
+        const ageHTML=age+' years'+(age>=50?' <span style="font-size:10px;color:#fbbf24;">⚠️ High-risk age</span>':'');
+
+        /* ── Populate ── */
+        document.getElementById('pmt-label').textContent=id+' — Diagnostic Report';
+        document.getElementById('rh-id').textContent=id;
+        document.getElementById('rh-id2').textContent=id;
+        document.getElementById('rh-drline').textContent='Dr. '+doctor+' · lung_cancer_model.h5';
+        document.getElementById('rh-drname').textContent=doctor;
+        document.getElementById('rh-drname-sign').textContent='Dr. '+doctor;
+        document.getElementById('rh-date').textContent=date;
+        document.getElementById('rh-footer-id').textContent='Report ID: '+id+' · Dr. '+doctor+' · '+(hospital || 'Clinical Center');
+
+        /* Hero */
+        document.getElementById('rh-hero').className='rpt-hero '+(isTumor?'is-tumor':'is-normal');
+        const icon=document.getElementById('rh-icon');
+        icon.textContent=isTumor?'⚠️':'✅';
+        icon.className='rpt-hero-icon '+(isTumor?'danger':'safe');
+        document.getElementById('rh-headline').textContent=result;
+        document.getElementById('rh-headline').style.color=isTumor?'#ef4444':'#10b981';
+        document.getElementById('rh-subline').textContent=isTumor?'Tumor Detected — Immediate clinical review recommended':'No malignancy detected — Routine follow-up advised';
+
+        function setBadge(id,text,cls){var el=document.getElementById(id);el.textContent=text;el.className='badge '+cls;}
+        setBadge('rh-risk-badge',(isTumor?'🔴 ':'🟢 ')+risk+' RISK',riskClass);
+        setBadge('rh-lr-badge','Lung-RADS '+lr,'badge-blue');
+
+        /* Conf bar */
+        document.getElementById('rh-conf-num').textContent=confNum.toFixed(2)+'%';
+        document.getElementById('rh-conf-num').style.color=isTumor?'#f87171':'#34d399';
+        const fill=document.getElementById('rh-conf-fill');
+        fill.style.width='0%'; fill.className='rpt-cfill '+(isTumor?'red':'green');
+        setTimeout(function(){fill.style.width=confNum+'%';},80);
+
+        /* Scan Viewport */
+        document.getElementById('rh-scan-img').src = image ? '/static/uploads/' + image : '';
+        document.getElementById('rh-scan-sub').textContent = scan + ' — AI Visual Analysis';
+
+        /* Demographics & Patient Profile */
+        document.getElementById('rh-name').textContent=name;
+        document.getElementById('rh-age').innerHTML=ageHTML;
+        document.getElementById('rh-gender').textContent=gender;
+        document.getElementById('rh-smoking').innerHTML=smokingHTML;
+        document.getElementById('rh-symptoms').textContent = symptoms || 'None reported';
+
+        /* Exposure Load metrics */
+        let exposureHTML = '';
+        if ((smoking === 'Current Smoker' || smoking === 'Former Smoker') && amountPerDay > 0) {
+            exposureHTML = `
+                <div style="font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px; margin-top:14px; border-bottom:1px solid #e2e8f0; padding-bottom:4px;">Exposure Metrics</div>
+                <div class="rpt-mrow"><span class="rpt-mlabel">Consumption</span><span class="rpt-mval">${amountPerDay} ${smokingType.toLowerCase()}s/day for ${yearsSmoked} years</span></div>
+            `;
+            if (smoking === 'Former Smoker' && yearsSinceQuit > 0) {
+                exposureHTML += `<div class="rpt-mrow"><span class="rpt-mlabel">Years Since Quit</span><span class="rpt-mval">${yearsSinceQuit} years ago</span></div>`;
+            }
+            exposureHTML += `
+                <div class="rpt-mrow"><span class="rpt-mlabel">Risk Level (Pack-Years)</span><span class="rpt-mval" style="font-weight:700; color:${packYears >= 20 ? '#ef4444' : packYears >= 10 ? '#f59e0b' : '#64748b'};">${packYears} pack-years</span></div>
+            `;
+        }
+        document.getElementById('rh-exposure-metrics').innerHTML = exposureHTML;
+
+        /* AI Diagnostics */
+        document.getElementById('rh-scan').textContent=scan;
+        document.getElementById('rh-date2').textContent=date;
+        const resEl=document.getElementById('rh-result');resEl.textContent=result;resEl.style.color=isTumor?'#ef4444':'#10b981';
+        document.getElementById('rh-conf').textContent=confNum.toFixed(2)+'%';
+        const rkEl=document.getElementById('rh-risk');rkEl.textContent=risk;rkEl.style.color=riskColor;rkEl.style.fontWeight='700';
+        const lrCat=document.getElementById('rh-lr-cat');lrCat.textContent='Category '+lr;lrCat.style.fontWeight='700';
+
+        /* Alert Banner */
+        const bannerContainer = document.getElementById('rh-alert-banner');
+        if (isTumor) {
+            bannerContainer.innerHTML = `
+                <div style="padding:14px;border-radius:12px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);text-align:center;line-height:1.7;">
+                  <div style="font-size:20px;margin-bottom:4px;">⚠️</div>
+                  <div style="font-size:13.5px;color:#f87171;font-weight:700;">Suspicious Lesion / Malignancy Detected</div>
+                  <div style="font-size:11px;color:#64748b;margin-top:4px;">Requires immediate pulmonology consultation and staging follow-up.</div>
+                </div>
+            `;
+        } else {
+            bannerContainer.innerHTML = `
+                <div style="padding:14px;border-radius:12px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);text-align:center;line-height:1.7;">
+                  <div style="font-size:20px;margin-bottom:4px;">✅</div>
+                  <div style="font-size:13.5px;color:#34d399;font-weight:700;">No Malignancy Indicators Detected</div>
+                  <div style="font-size:11px;color:#64748b;margin-top:4px;">Scan processed by lung_cancer_model.h5 · 99.4% accuracy</div>
+                </div>
+            `;
+        }
+
+        /* Lung-RADS card */
+        document.getElementById('rh-lr-sub').textContent='Clinical malignancy nodule classification';
+        const lrCard=document.getElementById('rh-lr-card');
+        lrCard.style.borderColor=lrColor; lrCard.style.background=lrColor+'10';
+        document.getElementById('rh-lr-num').textContent=lr;
+        document.getElementById('rh-lr-num').style.color=lrColor;
+        document.getElementById('rh-lr-label').textContent=lrLabel;
+        document.getElementById('rh-lr-desc').textContent=lrDesc;
+        const lrAct=document.getElementById('rh-lr-action');lrAct.textContent=lrAction;lrAct.style.borderLeftColor=lrColor;
+
+        /* Scale */
+        const scaleData=[['1','Negative','#10b981'],['2','Benign','#10b981'],['3','Probably Benign','#f59e0b'],['4A','Suspicious','#ef4444'],['4B','Very Suspicious','#dc2626']];
+        document.getElementById('rh-scale').innerHTML=scaleData.map(function(s){
+            const cur=s[0]===lr;
+            return '<div class="rpt-scale-item">'
+              +'<div class="rpt-scale-num" style="background:'+(cur?'rgba(30,45,69,.8)':'rgba(230,235,245,.8)')+';border:'+(cur?'2px solid '+s[2]+';box-shadow:0 0 8px '+s[2]+'44':'1px solid #e2e8f0')+';color:'+(cur?s[2]:'#94a3b8')+';">'+ s[0]+'</div>'
+              +'<span style="font-size:12px;color:'+(cur?'#1e293b':'#64748b')+';font-weight:'+(cur?'600':'400')+';">'+s[1]+'</span>'
+              +(cur?'<span style="font-size:10px;color:'+s[2]+';margin-left:auto;">← current</span>':'')
+              +'</div>';
+        }).join('');
+
+        /* Recommendations */
+        const recs=[];
+        if(isTumor){
+            recs.push({t:'urgent',icon:'🚨',urg:'Immediate Action Required',title:'Urgent Oncology Referral',desc:'Malignancy detected with <strong>'+confNum.toFixed(2)+'% confidence</strong>. Immediate referral to pulmonologist or oncologist is critical. Lung-RADS '+lr+': '+lrAction.replace('Rx ','')});
+            if(age>=50) recs.push({t:'warning',icon:'50+',urg:'Age Risk Factor — '+age+' Years',title:'Geriatric Oncology Assessment Required',desc:'Patients 50+ require comprehensive geriatric assessment (CGA) before chemotherapy or surgery. Evaluate ECOG performance status, comorbidities, and organ function.'});
+            if(smoking==='Current Smoker'||smoking==='Former Smoker') recs.push({t:'warning',icon:'✕',urg:'Smoking History: '+smoking,title:'Cessation + Carcinogen Assessment',desc:smoking==='Current Smoker'?'Active smoking significantly reduces treatment efficacy. Immediate cessation is mandatory. Prescribe NRT or varenicline alongside oncology treatment.':'Former smoker elevated risk remains 10–15 years post-cessation. Full pack-year history and carcinogen exposure must be documented.'});
+            if(smoking==='Passive Smoker') recs.push({t:'info',icon:'〰',urg:'Passive Smoke Exposure',title:'Document Full Carcinogen Exposure History',desc:'Passive smoke is a documented lung carcinogen. Complete occupational and household exposure history must be recorded for staging and legal/insurance considerations.'});
+            recs.push({t:'info',icon:'Rx',urg:'Pre-Treatment Assessment',title:'Pulmonary Function Tests + Baseline Labs',desc:'Spirometry, DLCO, FEV1/FVC must be established before any intervention. Order: CBC, CMP, LDH, CEA tumor marker, coagulation panel, cardiac echo if surgery planned.'});
+        } else {
+            recs.push({t:'good',icon:'✅',urg:'No Malignancy Detected',title:'No Immediate Clinical Action Required',desc:'AI detected no malignancy with <strong>'+confNum.toFixed(2)+'% confidence</strong>. Both lungs appear within normal limits. Continue routine health monitoring per standard guidelines.'});
+            if(age>=50) recs.push({t:'warning',icon:'📆',urg:'Age '+age+' — USPSTF Guidelines',title:'Annual Low-Dose CT (LDCT) Screening',desc:'Patients aged 50–80 should receive annual LDCT screening per USPSTF guidelines. Even without smoking history, age 50+ warrants regular lung monitoring. Schedule next scan in 12 months.'});
+            if(smoking==='Current Smoker') recs.push({t:'urgent',icon:'✕',urg:'Active Smoker — Highest Preventable Risk',title:'Immediate Cessation Programme Referral',desc:'Current smoking elevates lifetime lung cancer risk 15–30×. Normal scan today does not eliminate future risk. Next scan in 6 months. Refer to cessation programme with NRT or varenicline.'});
+            recs.push({t:'good',icon:'♥',urg:'Preventive Health',title:'Lung Health Maintenance Protocol',desc:'150+ min/week cardiovascular exercise. Avoid radon, asbestos, industrial pollutants. Annual flu and pneumococcal vaccination. Report new symptoms: persistent cough, haemoptysis, unexplained weight loss, chest pain.'});
+        }
+        document.getElementById('rh-recs').innerHTML=recs.map(function(r){
+            return '<div class="rpt-rec '+r.t+'">'
+              +'<div class="rpt-rec-icon '+r.t+'">'+r.icon+'</div>'
+              +'<div><div class="rpt-rec-urg '+r.t+'">'+r.urg+'</div>'
+              +'<div class="rpt-rec-title">'+r.title+'</div>'
+              +'<div class="rpt-rec-desc">'+r.desc+'</div></div></div>';
+        }).join('');
+
+        /* Open modal */
+        document.getElementById('print-modal').classList.add('open');
+        document.getElementById('print-modal').scrollTop=0;
+        document.body.style.overflow='hidden';
+
+        /* Copy rpt-page into print-root so @media print picks it up */
+        const pr=document.getElementById('rpt-print-root');
+        pr.innerHTML=document.getElementById('rpt-page').outerHTML;
+    }
+
+    /* Before print: ensure print-root is populated */
+    window.addEventListener('beforeprint',function(){
+        const pg=document.getElementById('rpt-page');
+        const pr=document.getElementById('rpt-print-root');
+        if(pg&&pr) pr.innerHTML=pg.outerHTML;
+    });
+
+    /* ── Live Filtering of Reports ── */
+    function filterReports() {
+        const searchVal = document.getElementById('searchReportsInput').value.toLowerCase();
+        const resultFilt = document.getElementById('resultFilterSelect').value;
+        const items = document.querySelectorAll('.report-item');
+        let visibleCount = 0;
+
+        items.forEach(item => {
+            const nameEl = item.querySelector('.report-meta strong');
+            const name = nameEl ? nameEl.textContent.toLowerCase() : '';
+            const idEl = item.querySelector('.report-name');
+            const id = idEl ? idEl.textContent.toLowerCase() : '';
+            const badgeEl = item.querySelector('.report-actions .badge');
+            const result = badgeEl ? badgeEl.textContent.trim() : '';
+
+            let matchesSearch = !searchVal || name.includes(searchVal) || id.includes(searchVal);
+            let matchesResult = !resultFilt || result === resultFilt;
+
+            if (matchesSearch && matchesResult) {
+                item.style.display = 'flex';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        const countLabel = document.getElementById('reports-count-label');
+        if (countLabel) {
+            countLabel.textContent = visibleCount;
+        }
+
+        // Toggle placeholder warning if no reports match the filters
+        let noReportsPlaceholder = document.getElementById('no-reports-filtered-placeholder');
+        if (visibleCount === 0) {
+            if (!noReportsPlaceholder) {
+                const reportsContainer = document.querySelector('.card');
+                noReportsPlaceholder = document.createElement('div');
+                noReportsPlaceholder.id = 'no-reports-filtered-placeholder';
+                noReportsPlaceholder.style.textAlign = 'center';
+                noReportsPlaceholder.style.padding = '48px 20px';
+                noReportsPlaceholder.style.color = 'var(--text-muted)';
+                noReportsPlaceholder.innerHTML = `
+                    <i data-lucide="file-search" style="width: 44px; height: 44px; opacity: 0.5; margin-bottom: 12px; display: block; margin-left: auto; margin-right: auto;"></i>
+                    <div style="font-size: 14px;">No reports match your search criteria.</div>
+                `;
+                reportsContainer.appendChild(noReportsPlaceholder);
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            } else {
+                noReportsPlaceholder.style.display = 'block';
+            }
+        } else {
+            if (noReportsPlaceholder) {
+                noReportsPlaceholder.style.display = 'none';
+            }
+        }
+    }
+
+    function clearReportsFilters() {
+        document.getElementById('searchReportsInput').value = '';
+        document.getElementById('resultFilterSelect').value = '';
+        filterReports();
+    }
+</script>
+{% endblock %}

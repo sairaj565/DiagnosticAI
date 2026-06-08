@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+
+{% block title %}DiagnosticAI — Dashboard{% endblock %}
+
+{% block extra_styles %}
+<style>
+  /* ── Page Header Action Button ── */
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; }
+  .page-title { font-size: 26px; font-weight: 600; }
+  .page-desc { font-size: 14px; color: var(--text-secondary); margin-top: 4px; }
+
+  /* ── Stats Grid & Cards ── */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 22px 24px; position: relative; overflow: hidden; transition: all 0.2s; cursor: pointer; }
+  .stat-card:hover { border-color: rgba(96,165,250,.5); transform: translateY(-2px); box-shadow: 0 0 0 2px rgba(37,99,235,.1), 0 8px 28px rgba(0,0,0,.4); }
+  .stat-card.green { --accent: var(--green); }
+  .stat-card.red   { --accent: var(--red); }
+  .stat-card.amber { --accent: var(--amber); }
+  .stat-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--accent, var(--blue)); opacity: 0.7; }
+  .stat-card::before { content: ''; position: absolute; inset: 0; border-radius: 14px; opacity: 0; transition: opacity 0.3s; background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.07), transparent 70%); }
+  .stat-card:hover::before { opacity: 1; }
+  .insight-hint { position: absolute; top: 10px; right: 10px; font-size: 12px; opacity: 0; transition: opacity 0.2s; color: var(--text-muted); }
+  .stat-card:hover .insight-hint { opacity: 0.7; }
+  .stat-icon { font-size: 22px; margin-bottom: 14px; }
+  .stat-value { font-family: var(--font-mono); font-size: 28px; font-weight: 700; }
+  .stat-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+  /* ── Recent Patients UI Elements ── */
+  .pid { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); }
+  .confidence-danger { color: #f87171; font-family: var(--font-mono); font-size: 12px; }
+  .confidence-safe   { color: #34d399; font-family: var(--font-mono); font-size: 12px; }
+
+  /* ── Animated Entrance ── */
+  @keyframes statCardIn { from { transform: translateY(36px) scale(.95); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+  .stat-card { animation: statCardIn .5s cubic-bezier(.22, 1, .36, 1) both; }
+  .stats-grid .stat-card:nth-child(1) { animation-delay: .05s; }
+  .stats-grid .stat-card:nth-child(2) { animation-delay: .15s; }
+  .stats-grid .stat-card:nth-child(3) { animation-delay: .25s; }
+  .stats-grid .stat-card:nth-child(4) { animation-delay: .35s; }
+  .stat-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--accent, var(--blue)); opacity: 0; animation: accentIn .5s ease forwards; }
+  .stats-grid .stat-card:nth-child(1)::after { animation-delay: .25s; }
+  .stats-grid .stat-card:nth-child(2)::after { animation-delay: .35s; }
+  .stats-grid .stat-card:nth-child(3)::after { animation-delay: .45s; }
+  .stats-grid .stat-card:nth-child(4)::after { animation-delay: .55s; }
+  @keyframes accentIn { from { opacity: 0; transform: scaleX(0); transform-origin: left; } to { opacity: 0.7; transform: scaleX(1); transform-origin: left; } }
+  @keyframes iconBounce { 0% { transform: scale(0) rotate(-15deg); opacity: 0; } 65% { transform: scale(1.2) rotate(5deg); opacity: 1; } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
+  .stat-icon { animation: iconBounce .45s cubic-bezier(.34, 1.56, .64, 1) both; }
+  .stats-grid .stat-card:nth-child(1) .stat-icon { animation-delay: .22s; }
+  .stats-grid .stat-card:nth-child(2) .stat-icon { animation-delay: .32s; }
+  .stats-grid .stat-card:nth-child(3) .stat-icon { animation-delay: .42s; }
+  .stats-grid .stat-card:nth-child(4) .stat-icon { animation-delay: .52s; }
+  .stat-value { opacity: 0; transition: opacity .25s; }
+  .stat-value.visible { opacity: 1; }
+
+  /* ── Database Insights Overlay / Panel ── */
+  #db-overlay { position: fixed; inset: 0; z-index: 1999; background: rgba(0,0,0,0); pointer-events: none; transition: background .3s ease; display: flex; align-items: center; justify-content: center; }
+  #db-overlay.active { background: rgba(0,0,0,.65); pointer-events: all; backdrop-filter: blur(4px); }
+  #db-panel { position: relative; width: 580px; max-width: 92vw; max-height: 82vh; background: linear-gradient(180deg, #0d1a2e 0%, #080e1c 100%); border: 1px solid rgba(59, 130, 246, 0.28); border-radius: 18px; z-index: 2000; display: flex; flex-direction: column; box-shadow: 0 30px 80px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.04); opacity: 0; transform: scale(.93) translateY(16px); pointer-events: none; transition: opacity .28s ease, transform .28s cubic-bezier(.22, 1, .36, 1); }
+  #db-overlay.active #db-panel { opacity: 1; transform: scale(1) translateY(0); pointer-events: all; }
+  
+  .dp-head { padding: 20px 22px 16px; border-bottom: 1px solid rgba(59, 130, 246, 0.15); display: flex; align-items: flex-start; justify-content: space-between; flex-shrink: 0; }
+  .dp-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 20px; font-size: 11px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .06em; }
+  .dp-title { font-size: 17px; font-weight: 700; line-height: 1.2; margin-bottom: 3px; }
+  .dp-sub { font-size: 12px; color: #64748b; }
+  .dp-close { width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0; margin-left: 12px; background: rgba(30,45,69,.6); border: 1px solid rgba(59,130,246,.2); color: #94a3b8; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: all .2s; }
+  .dp-close:hover { background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #f87171; }
+  .dp-body { flex: 1; overflow-y: auto; padding: 18px 22px 28px; }
+  
+  .dp-section { margin-bottom: 20px; }
+  .dp-section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: #475569; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid rgba(59,130,246,0.1); }
+  .dp-callout { border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; display: flex; align-items: center; gap: 16px; }
+  .dp-callout-num { font-family: var(--font-mono); font-size: 36px; font-weight: 700; line-height: 1; flex-shrink: 0; }
+  .dp-callout-label { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+  .dp-insight { border-radius: 10px; padding: 13px 15px; margin-bottom: 10px; display: flex; gap: 12px; align-items: flex-start; border: 1px solid rgba(59, 130, 246, 0.1); }
+  .dp-insight.good { background: rgba(16, 185, 129, 0.07); border-color: rgba(16, 185, 129, 0.25); }
+  .dp-insight.warn { background: rgba(245, 158, 11, 0.06); border-color: rgba(245, 158, 11, 0.18); }
+  .dp-insight.info { background: rgba(37, 99, 235, 0.07); border-color: rgba(37, 99, 235, 0.18); }
+  .dp-insight.crit { background: rgba(239, 68, 68, 0.07); border-color: rgba(239, 68, 68, 0.25); }
+  .dp-insight-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .dp-insight-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 4px; }
+  .dp-insight.good .dp-insight-label { color: #34d399; }
+  .dp-insight.warn .dp-insight-label { color: #fbbf24; }
+  .dp-insight.info .dp-insight-label { color: #93c5fd; }
+  .dp-insight.crit .dp-insight-label { color: #f87171; }
+  .dp-insight-text { font-size: 13px; color: #cbd5e1; line-height: 1.6; }
+  .dp-insight-text strong { color: #f0f4ff; }
+  .dp-stat { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(30,45,69,.5); font-size: 13px; }
+  .dp-stat:last-child { border-bottom: none; }
+  .dp-stat-lbl { color: #94a3b8; }
+  .dp-stat-val { font-family: var(--font-mono); font-size: 12px; font-weight: 600; }
+  .dp-bar-row { margin-bottom: 10px; }
+  .dp-bar-header { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; }
+  .dp-bar-lbl { color: #94a3b8; }
+  .dp-bar-val { font-family: var(--font-mono); font-weight: 600; }
+  .dp-bar-track { height: 6px; border-radius: 3px; background: rgba(30,45,69,.8); overflow: hidden; }
+  .dp-bar-fill { height: 100%; border-radius: 3px; }
+  .dp-action { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 0; border-radius: 10px; margin-top: 6px; background: rgba(37, 99, 235, 0.12); border: 1px solid rgba(37, 99, 235, 0.25); color: #93c5fd; font-size: 13px; font-weight: 500; text-decoration: none; transition: all 0.2s; cursor: pointer; }
+  .dp-action:hover { background: rgba(37, 99, 235, 0.22); color: #f0f4ff; }
+  @keyframes dpIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: translateX(0); } }
+  .dp-insight { animation: dpIn .3s ease both; }
+  .dp-insight:nth-child(1) { animation-delay: .04s; }
+  .dp-insight:nth-child(2) { animation-delay: .09s; }
+  .dp-insight:nth-child(3) { animation-delay: .14s; }
+  .dp-insight:nth-child(4) { animation-delay: .19s; }
+  .dp-insight:nth-child(5) { animation-delay: .24s; }
+</style>
+{% endblock %}
+
+{% block content %}
+    <!-- DB INSIGHT DETAILS POPUP OVERLAY -->
+    <div id="db-overlay" onclick="closeDP()">
+        <div id="db-panel" onclick="event.stopPropagation()">
+            <div class="dp-head">
+                <div style="flex: 1;">
+                    <div class="dp-badge" id="dp-badge">💡 Insight</div>
+                    <div class="dp-title" id="dp-title">Loading...</div>
+                    <div class="dp-sub" id="dp-sub">—</div>
+                </div>
+                <button class="dp-close" onclick="closeDP()">✕</button>
+            </div>
+            <div class="dp-body" id="dp-body"></div>
+        </div>
+    </div>
+
+    <div class="topbar">
+        <div>
+            <h1 class="page-title">Dashboard</h1>
+            <p class="page-desc">Overview of AI diagnostic activity</p>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;">
+            <a href="/upload" class="btn btn-primary">+ New Scan</a>
+        </div>
+    </div>
+
+    <div class="welcome-banner">
+        <div>
+            <div class="welcome-text">👋 Welcome back, Dr. {{ doctor_name }}</div>
+            <div class="welcome-sub">Here's your diagnostic summary for today. Click any card for key insights.</div>
+        </div>
+        <span style="font-size:32px;">🔬</span>
+    </div>
+
+    <!-- STATS CARDS -->
+    <div class="stats-grid">
+        <div class="stat-card" onclick="showDP('total')">
+            <span class="insight-hint">💡</span>
+            <div class="stat-icon">🔬</div>
+            <div class="stat-value">{{ total }}</div>
+            <div class="stat-label">Total Scans Analyzed</div>
+        </div>
+        <div class="stat-card red" onclick="showDP('cancer')">
+            <span class="insight-hint">💡</span>
+            <div class="stat-icon">⚠️</div>
+            <div class="stat-value">{{ tumors }}</div>
+            <div class="stat-label">Cancer Detected</div>
+        </div>
+        <div class="stat-card green" onclick="showDP('normal')">
+            <span class="insight-hint">💡</span>
+            <div class="stat-icon">✅</div>
+            <div class="stat-value">{{ normal }}</div>
+            <div class="stat-label">Normal / Healthy</div>
+        </div>
+        <div class="stat-card amber" onclick="showDP('accuracy')">
+            <span class="insight-hint">💡</span>
+            <div class="stat-icon">🎯</div>
+            <div class="stat-value">99.4%</div>
+            <div class="stat-label">Model Accuracy</div>
+        </div>
+    </div>
+
+    <!-- RECENT PATIENTS -->
+    <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+            <div>
+                <div class="card-title">Recent Patients</div>
+                <div class="card-sub" style="margin-bottom:0;">Latest activity · one row per patient</div>
+            </div>
+            <a href="/records" class="btn btn-ghost btn-sm">View All →</a>
+        </div>
+        {% if recent %}
+        <div class="table-wrapper">
+            <table class="records-table">
+                <thead>
+                    <tr>
+                        <th>REF ID</th>
+                        <th>Name</th>
+                        <th>Age</th>
+                        <th>Latest Result</th>
+                        <th>Confidence</th>
+                        <th>Last Visit</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in recent %}
+                    <tr>
+                        <td><span class="pid">{{ p['profile_ref_id'] or p['patient_id'] }}</span></td>
+                        <td style="font-weight:600; color:var(--text-primary);">
+                            {{ p['name'] or '—' }}
+                            {% set vc = visit_counts.get(p['profile_ref_id'], 1) %}
+                            {% if vc > 1 %}
+                            <span style="font-size:10px;background:rgba(6,182,212,.15);color:#22d3ee;border:1px solid rgba(6,182,212,.3);padding:2px 7px;border-radius:10px;margin-left:6px;">{{ vc }} visits</span>
+                            {% endif %}
+                        </td>
+                        <td style="color:var(--text-muted);">{{ p['age'] or '—' }}</td>
+                        <td>
+                            <span class="badge {{ 'badge-red' if p['result'] == 'Tumor Detected' else 'badge-green' }}">
+                                {{ p['result'] }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="{{ 'confidence-danger' if p['result'] == 'Tumor Detected' else 'confidence-safe' }}">
+                                {{ p['confidence'] }}%
+                            </span>
+                        </td>
+                        <td style="color:var(--text-muted);font-size:12px;">{{ p['created_at'][:10] }}</td>
+                        <td style="display:flex;gap:6px;">
+                            <a href="/result/{{ p['patient_id'] }}" class="btn btn-ghost btn-sm">View</a>
+                            {% if vc > 1 %}
+                            <a href="/patient/profile/{{ p['profile_ref_id'] }}" class="btn btn-ghost btn-sm" style="border-color:rgba(6,182,212,.3);color:#22d3ee;background:rgba(6,182,212,.03);">History</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="text-align:center;padding:40px;color:var(--text-muted);">
+            <div style="font-size:36px;margin-bottom:12px;">🫁</div>
+            <div>No scans yet. <a href="/upload" style="color:var(--blue-bright);">Upload your first scan →</a></div>
+        </div>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+var TOTAL  = parseInt('{{ total }}')  || 0;
+var TUMORS = parseInt('{{ tumors }}') || 0;
+var NORMAL = parseInt('{{ normal }}') || 0;
+var TUMOR_PCT  = TOTAL > 0 ? (TUMORS / TOTAL * 100).toFixed(1) : '0.0';
+var NORMAL_PCT = TOTAL > 0 ? (NORMAL / TOTAL * 100).toFixed(1) : '0.0';
+
+function dpSec(t,h){ return '<div class="dp-section"><div class="dp-section-title">'+t+'</div>'+h+'</div>'; }
+function dpIns(type,icon,label,text){ return '<div class="dp-insight '+type+'"><div class="dp-insight-icon">'+icon+'</div><div><div class="dp-insight-label">'+label+'</div><div class="dp-insight-text">'+text+'</div></div></div>'; }
+function dpStat(l,v,c){ return '<div class="dp-stat"><span class="dp-stat-lbl">'+l+'</span><span class="dp-stat-val" style="color:'+(c||'#f0f4ff')+';">'+v+'</span></div>'; }
+function dpBar(l,v,pct,c){ return '<div class="dp-bar-row"><div class="dp-bar-header"><span class="dp-bar-lbl">'+l+'</span><span class="dp-bar-val" style="color:'+c+';">'+v+'</span></div><div class="dp-bar-track"><div class="dp-bar-fill" style="width:'+pct+'%;background:'+c+';"></div></div></div>'; }
+function dpCall(num,label,bg,c){ return '<div class="dp-callout" style="background:'+bg+';border:1px solid '+c+'44;"><div class="dp-callout-num" style="color:'+c+';">'+num+'</div><div><div class="dp-callout-label">'+label+'</div></div></div>'; }
+function dpLink(icon,text,href){ return '<a href="'+href+'" class="dp-action">'+icon+' '+text+'</a>'; }
+
+function buildInsight(key) {
+    var cr = TOTAL > 0 ? TUMORS/TOTAL*100 : 0;
+    if (key === 'total') {
+        var riskType = cr >= 60 ? 'crit' : cr >= 40 ? 'warn' : 'good';
+        var riskMsg  = cr >= 60 ? 'This is a <strong>high positive rate</strong>. Review your patient referral criteria and ensure all high-risk cases have priority follow-up.' : cr >= 40 ? 'This is a <strong>moderate detection rate</strong>, typical for specialist referral clinics seeing high-risk patients.' : 'This is a <strong>low positive rate</strong>, suggesting your current patient population is mostly low-risk.';
+        return { badge:'🔬 Total Scans', bg:'rgba(37,99,235,.2)', color:'#93c5fd', title:'Total Scans — '+TOTAL, sub:'Your complete AI diagnostic workload',
+            body: dpSec('Workload Summary', dpCall(TOTAL,'patient CT scans analyzed by AI','rgba(37,99,235,.08)','#93c5fd')+dpIns('info','📋','What This Covers','Every scan uploaded to DiagnosticAI has been processed by the <strong>MobileNetV2 model</strong> at 99.4% accuracy. Each result — Cancer or Normal — is available in Patient Records for clinical review.')+dpIns(riskType,'📊','Your Cancer Detection Rate','<strong>'+TUMOR_PCT+'%</strong> of your scans are cancer-positive. '+riskMsg))+dpSec('Scan Breakdown',dpBar('Tumor Detected',TUMORS+' scans',TUMOR_PCT,'#f87171')+dpBar('Normal / Healthy',NORMAL+' scans',NORMAL_PCT,'#34d399'))+dpSec('Quick Stats',dpStat('Total Scans',TOTAL,'#93c5fd')+dpStat('Cancer Positive',TUMORS+' ('+TUMOR_PCT+'%)','#f87171')+dpStat('Normal / Clear',NORMAL+' ('+NORMAL_PCT+'%)','#34d399')+dpStat('AI Model','MobileNetV2','#f0f4ff')+dpStat('Model Accuracy','99.4%','#fbbf24'))+dpLink('📈','View Full Analytics →','/analytics') };
+    }
+    if (key === 'cancer') {
+        var urgency = TUMORS >= 10 ? dpIns('crit','🚨','High Volume Alert','You have <strong>'+TUMORS+' positive cancer cases</strong>. Ensure all patients have been contacted, results confirmed by radiologist, and follow-up appointments are scheduled.') : dpIns('warn','⚠️','Active Cancer Cases','<strong>'+TUMORS+' patients</strong> received a Tumor Detected result. Each requires radiologist confirmation and clinical follow-up before any treatment decision.');
+        return { badge:'⚠️ Cancer Detected', bg:'rgba(239,68,68,.18)', color:'#f87171', title:TUMORS+' Cancer Cases Detected', sub:'AI-flagged positives requiring clinical follow-up',
+            body: dpSec('Clinical Overview',dpCall(TUMORS,'patients flagged — '+TUMOR_PCT+'% of all scans','rgba(239,68,68,.08)','#f87171')+urgency+dpIns('info','🔬','What "Tumor Detected" Means','The AI classified these scans as containing malignant lung tissue. <strong>This is not a final diagnosis.</strong> All results require radiologist review and clinical correlation.')+dpIns('warn','📋','Recommended Next Steps','① Radiologist review of all flagged scans. ② PET-CT or biopsy for high-confidence cases (>90%). ③ Stage disease if malignancy confirmed. ④ Refer to oncology for treatment planning.'))+dpSec('Key Numbers',dpStat('Positive Cases',TUMORS,'#f87171')+dpStat('Detection Rate',TUMOR_PCT+'%','#f87171')+dpStat('False Positive Rate (model)','0.48%','#94a3b8')+dpStat('Missed Cancers Rate (model)','0.72%','#94a3b8'))+dpLink('🗂️','Review All Patient Records →','/records') };
+    }
+    if (key === 'normal') {
+        var clearMsg = NORMAL === 0 ? dpIns('crit','🚨','No Cleared Patients','All scans have returned positive. This is unusual — verify patient selection criteria.') : dpIns('good','✅','Cleared Patients','<strong>'+NORMAL+' patients</strong> have been cleared by the AI. These patients can be reassured and scheduled for routine <strong>annual follow-up CT screening</strong>.');
+        return { badge:'✅ Normal / Healthy', bg:'rgba(16,185,129,.18)', color:'#34d399', title:NORMAL+' Patients Cleared', sub:'Scans with no malignant findings detected',
+            body: dpSec('Clinical Overview',dpCall(NORMAL,'patients cleared as Normal ('+NORMAL_PCT+'% of all scans)','rgba(16,185,129,.08)','#34d399')+clearMsg+dpIns('info','📋','What "Normal" Means','No malignant tissue was detected. <strong>Always correlate with clinical history</strong> — a normal AI result does not rule out early-stage disease.')+dpIns('warn','⚠️','Key Limitation','The model has a <strong>False Negative rate of 0.72%</strong>. Patients with strong risk factors warrant additional clinical evaluation even if cleared by AI.'))+dpSec('Key Numbers',dpStat('Cleared Patients',NORMAL,'#34d399')+dpStat('Clearance Rate',NORMAL_PCT+'%','#34d399')+dpStat('Model FN Rate','0.72%','#fbbf24')+dpStat('Model Specificity','99.52%','#94a3b8'))+dpLink('📄','View Patient Reports →','/reports') };
+    }
+    if (key === 'accuracy') {
+        return { badge:'🎯 Model Accuracy', bg:'rgba(245,158,11,.18)', color:'#fbbf24', title:'AI Model Accuracy — 99.4%', sub:'MobileNetV2 · Scientifically evaluated on 832 CT scans',
+            body: dpSec('What This Number Means',dpCall('99.4%','827 out of 832 test scans correctly classified','rgba(245,158,11,.08)','#fbbf24')+dpIns('good','✅','Exceptional Performance','At <strong>99.4% accuracy</strong>, this AI correctly identifies Cancer vs Normal in all but ~6 in every 1,000 scans. The clinical benchmark is ≥95% — this model surpasses it significantly.')+dpIns('warn','⚠️','What 0.6% Error Means','Approximately <strong>6 in every 1,000 scans</strong> will be misclassified. This is why radiologist review of all AI results remains essential.'))+dpSec('All Model Metrics',dpBar('Accuracy','99.4%',99.4,'#34d399')+dpBar('Precision','99.52%',99.52,'#93c5fd')+dpBar('Recall','99.28%',99.28,'#22d3ee')+dpBar('F1 Score','99.4%',99.4,'#c4b5fd')+dpBar('ROC-AUC','99.93%',99.93,'#fbbf24'))+dpSec('How This Compares',dpStat('This Model','99.4%','#fbbf24')+dpStat('FDA-cleared AI tools (avg)','~92–96%','#94a3b8')+dpStat('Human radiologist (avg)','70–80%','#94a3b8')+dpStat('Verdict','✅ Exceeds all benchmarks','#34d399'))+dpLink('🧪','View Full Model Evaluation →','/evaluation') };
+    }
+}
+
+function showDP(key) {
+    var d = buildInsight(key); if (!d) return;
+    var badge = document.getElementById('dp-badge');
+    badge.textContent=d.badge; badge.style.background=d.bg; badge.style.color=d.color; badge.style.border='1px solid '+d.color+'44';
+    document.getElementById('dp-title').textContent=d.title;
+    document.getElementById('dp-sub').textContent=d.sub;
+    document.getElementById('dp-body').innerHTML=d.body;
+    document.getElementById('db-overlay').classList.add('active');
+    document.getElementById('dp-body').scrollTop=0;
+}
+function closeDP() { document.getElementById('db-overlay').classList.remove('active'); }
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeDP(); });
+
+function countUp(el,target,duration,suffix,decimals){
+    suffix=suffix||''; decimals=decimals||0; var st=null; el.classList.add('visible');
+    function step(ts){ if(!st)st=ts; var p=Math.min((ts-st)/duration,1),e=1-Math.pow(1-p,3),c=e*target; el.textContent=decimals?c.toFixed(decimals)+suffix:Math.round(c)+suffix; if(p<1)requestAnimationFrame(step); else el.textContent=decimals?target.toFixed(decimals)+suffix:target+suffix; }
+    requestAnimationFrame(step);
+}
+document.addEventListener('DOMContentLoaded',function(){
+    var els=document.querySelectorAll('.stat-value'),delays=[350,450,550,650];
+    els.forEach(function(el,i){ var raw=el.textContent.trim(),isF=raw.includes('.'),suf=raw.replace(/[\d.]/g,''),num=parseFloat(raw.replace(/[^0-9.]/g,'')); if(isNaN(num)){el.classList.add('visible');return;} el.textContent='0'+suf; setTimeout(function(){ countUp(el,num,1000,suf,isF?(raw.split('.')[1].length):0); },delays[i]||800); });
+});
+</script>
+{% endblock %}
