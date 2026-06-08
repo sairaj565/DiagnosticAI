@@ -62,45 +62,83 @@ DiagnosticAI/
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Running the Application
 
-### 1. Prerequisites
-Make sure you have **Python 3.8 to 3.10** installed.
+### 1. Clone the Repository
 
-### 2. Install Dependencies
-Clone the repository and install the libraries:
+```bash
+git clone https://github.com/sairaj565/DiagnosticAI.git
+```
+
+### 2. Navigate to the Project Directory
+
+```bash
+cd DiagnosticAI
+```
+
+### 3. Install Dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Environment Configuration
-Create a `.env` file in the root folder of the project if you need customized email relays or custom session keys:
-```env
-SECRET_KEY=your_secure_development_key
-```
-*Note: The platform defaults to a fallback development key if `.env` is absent.*
+### 4. Launch the Application
 
-### 4. Running the Application
-Launch the Flask development server:
 ```bash
 python app.py
 ```
-Upon startup, the database is auto-initialized if it does not already exist.
 
-Access the platform in your browser at:
-👉 **`http://localhost:5000`**
+### 5. Open in Browser
+
+Once the server starts successfully, open:
+
+```text
+http://127.0.0.1:5000
+```
+
+The DiagnosticAI dashboard will load in your browser.
+
+### Notes
+
+* Python 3.8–3.10 recommended.
+* The SQLite database is automatically initialized on first run.
+* The pretrained model (`lung_cancer_model.h5`) is included in the repository.
+* TensorFlow GPU warnings can be safely ignored on systems without NVIDIA CUDA support.
+* First startup may take a few seconds while the model loads into memory.
 
 ---
 
-## 🩺 Doctor Access & Test Instructions
-1. Open the login page (`/login`) and click **Create New Account**.
-2. Register a new physician profile (Name, Hospital, Medical License, Specialization).
-3. Once logged in, navigate the clinical portal:
-   - **Dashboard**: Review summary statistics. Tap on cards to load database insight reports.
-   - **New Scan**: Enter mock patient symptoms (smoking habit, pack-years, symptoms) and upload a scan image (or use a mobile camera).
-   - **Patient Records**: Look up files, filter results, and view medical profile histories.
-   - **Reports**: Generate and print clean, clinical diagnostic sheets.
-   - **Model Evaluation**: Review the Confusion Matrix and ROC curve.
+## 🧪 Testing the Application
+
+After launching the application:
+
+1. Open `http://127.0.0.1:5000`
+2. Create a physician account and log in.
+3. Navigate to **Upload Scan**.
+4. Select a CT/MRI image from your device or use mobile camera capture.
+5. Click **Analyze Scan**.
+6. Review the generated prediction, confidence score, Lung-RADS category, and patient report.
+
+---
+
+## 🧪 Sample Test Images
+
+The repository includes a `sample_images` directory containing example CT scan images for quick testing.
+
+After launching the application:
+
+1. Log in to the platform.
+2. Navigate to **Upload Scan**.
+3. Select any image from the `sample_images` folder.
+4. Click **Analyze Scan**.
+5. Review the generated prediction and report.
+
+Example files:
+
+* `Normal case (1).jpg`
+* `Normal case (2).jpg`
+* `Malignant case (1).jpg`
+* `Malignant case (2).jpg`
 
 ---
 
